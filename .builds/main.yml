@@ -4,6 +4,7 @@ sources:
   - https://codeberg.org/gotmax23/goorphans
 packages:
   - golang
+  - krb5-devel
 tasks:
   - build: |
       cd goorphans
