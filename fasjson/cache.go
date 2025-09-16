@@ -1,4 +1,4 @@
-package fas2email
+package fasjson
 
 import (
 	"database/sql"
@@ -31,16 +31,16 @@ type EmailCacheClient struct {
 // Clean entries greater than TTL
 func (cache *EmailCacheClient) Clean() error {
 	_, err := cache.db.Exec(`
-		DELETE FROM fas_user WHERE exp - unixepoch('now','subsec') <= 0.0;
-		DELETE FROM fas_group WHERE exp - unixepoch('now','subsec') <= 0.0;
-	`)
+		DELETE FROM fas_user WHERE (cache_time + ?) <= unixepoch('now','subsec');
+		DELETE FROM fas_group WHERE (cache_time + ?) <= unixepoch('now','subsec');
+	`, cache.TTLSeconds, cache.TTLSeconds)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func OpenCacheDB(filename string) (*EmailCacheClient, error) {
+func OpenCacheDB(filename string, ttl float64) (*EmailCacheClient, error) {
 	db, err := sql.Open("sqlite3", filename+"?_foreign_keys=1")
 	if err != nil {
 		return nil, err
@@ -50,8 +50,8 @@ func OpenCacheDB(filename string) (*EmailCacheClient, error) {
 		return nil, err
 	}
 
-	cache := EmailCacheClient{db, NewClient(), DefaultTTL}
-	cache.Clean()
+	cache := EmailCacheClient{db, NewClient(), ttl}
+	// cache.Clean()
 	return &cache, nil
 }
 
@@ -59,8 +59,8 @@ func (cache *EmailCacheClient) queryUserEmail(username string) (string, error) {
 	var email string
 	err := cache.db.QueryRow(`
 		SELECT email FROM fas_user
-		WHERE user_name = ? AND exp - unixepoch('now','subsec') > 0.0;
-	`, username).
+		WHERE user_name = ? AND (cache_time + ?) > unixepoch('now','subsec')
+	`, username, cache.TTLSeconds).
 		Scan(&email)
 	if err != nil {
 		return "", err
@@ -70,8 +70,8 @@ func (cache *EmailCacheClient) queryUserEmail(username string) (string, error) {
 
 func (cache *EmailCacheClient) insertUserEmail(username string, email string) error {
 	_, err := cache.db.Exec(`
-		INSERT OR REPLACE INTO fas_user (user_name, email, exp)
-		VALUES (?, ?, unixepoch('now','subsec') + ?);
+		INSERT OR REPLACE INTO fas_user (user_name, email, cache_time)
+		VALUES (?, ?, unixepoch('now','subsec'));
 	`, username, email, cache.TTLSeconds)
 	if err != nil {
 		return err
@@ -101,8 +101,8 @@ func (cache *EmailCacheClient) queryMembers(groupname string) ([]string, error) 
 	results := []string{}
 	err := cache.db.QueryRow(`
 		SELECT group_name FROM fas_group
-		WHERE group_name = ? AND exp - unixepoch('now','subsec') > 0.0;
-	`, groupname).Scan(&groupname)
+		WHERE group_name = ? AND (cache_time + ?) > unixepoch('now','subsec');
+	`, groupname, cache.TTLSeconds).Scan(&groupname)
 	if err != nil {
 		return results, err
 	}
@@ -139,9 +139,9 @@ func (cache *EmailCacheClient) insertMembers(groupname string, members []string)
 	}
 	// Create group
 	_, err = tx.Exec(`
-		INSERT OR REPLACE INTO fas_group (group_name, exp)
-		VALUES (?, unixepoch('now','subsec') + ?);
-	`, groupname, cache.TTLSeconds)
+		INSERT OR REPLACE INTO fas_group (group_name, cache_time)
+		VALUES (?, unixepoch('now','subsec'));
+	`, groupname)
 	if err != nil {
 		return err
 	}
@@ -204,6 +204,7 @@ func (cache *EmailCacheClient) GetUserIterEmailsMap(
 func (cache *EmailCacheClient) GetMemberEmailsMap(
 	groupname string,
 ) (map[string]string, error) {
+	// Function not currently used by the CLI code
 	members, err := cache.GetMembers(groupname)
 	if err != nil {
 		return map[string]string{}, fmt.Errorf(

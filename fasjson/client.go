@@ -1,4 +1,4 @@
-package fas2email
+package fasjson
 
 import (
 	"encoding/json"

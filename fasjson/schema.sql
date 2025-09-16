@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS fas_user (
     user_name TEXT PRIMARY KEY,
     email TEXT NOT NULL,
-    exp REAL NOT NULL
+    cache_time REAL NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS fas_group (
     group_name TEXT PRIMARY KEY,
-    exp REAL NOT NULL
+    cache_time REAL NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS group_member (
