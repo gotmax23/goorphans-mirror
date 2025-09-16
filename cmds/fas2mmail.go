@@ -1,0 +1,80 @@
+package cmds
+
+import (
+	"context"
+	"fmt"
+	"maps"
+	"path"
+	"slices"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"go.gtmx.me/goorphans/common"
+	"go.gtmx.me/goorphans/fasjson"
+)
+
+var fas2emailArgsKey = &argsKeyType{"fas2email"}
+
+type Fas2emailArgs struct {
+	Cache *fasjson.EmailCacheClient
+}
+
+func newFas2emailCommand() *cobra.Command {
+	var ttl float64
+	cmd := &cobra.Command{
+		Use:     "fas2email",
+		Short:   "Query FASJSON for user and group emails",
+		Aliases: []string{"f2e"},
+		PersistentPreRunE: func(cmd *cobra.Command, argv []string) error {
+			cacheDir, err := common.CacheDir()
+			if err != nil {
+				return err
+			}
+			p := path.Join(cacheDir, "fasjson.db")
+			cache, err := fasjson.OpenCacheDB(p, ttl)
+			if err != nil {
+				return err
+			}
+			args := &Fas2emailArgs{cache}
+			cmd.SetContext(context.WithValue(cmd.Context(), fas2emailArgsKey, args))
+			return nil
+		},
+	}
+	cmd.PersistentFlags().Float64Var(&ttl, "ttl", fasjson.DefaultTTL, "Cache TTL in seconds")
+	cmd.AddCommand(f2eClean())
+	cmd.AddCommand(f2eGet())
+	return cmd
+}
+
+func f2eClean() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "clean",
+		Short: "Init cache database and clean old cache",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(fas2emailArgsKey).(*Fas2emailArgs)
+			fmt.Println("Cleaning cache...")
+			return args.Cache.Clean()
+		},
+		Args: NoArgs,
+	}
+	return cmd
+}
+
+func f2eGet() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get NAME...",
+		Short: "Get emails for usernames or group names (args prefixed with @)",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(fas2emailArgsKey).(*Fas2emailArgs)
+			emailm, err := args.Cache.GetAllEmailsMap(argv)
+			if err != nil {
+				return err
+			}
+			emails := slices.Sorted(maps.Values(emailm))
+			fmt.Println(strings.Join(emails, "\n"))
+			return nil
+		},
+		Args: ArgsWrapper(cobra.MinimumNArgs(1)),
+	}
+	return cmd
+}

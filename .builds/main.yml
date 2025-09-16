@@ -1,0 +1,13 @@
+---
+image: fedora/latest
+sources:
+  - https://codeberg.org/gotmax23/goorphans
+packages:
+  - golang
+tasks:
+  - build: |
+      cd goorphans
+      go build .
+  - test: |
+      cd goorphans
+      go test ./...
