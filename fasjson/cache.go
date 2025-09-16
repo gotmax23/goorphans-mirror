@@ -99,7 +99,12 @@ func (cache *EmailCacheClient) GetUserEmail(username string) (string, error) {
 
 func (cache *EmailCacheClient) queryMembers(groupname string) ([]string, error) {
 	results := []string{}
-	err := cache.db.QueryRow(`
+	tsx, err := cache.db.Begin()
+	defer tsx.Rollback()
+	if err != nil {
+		return results, err
+	}
+	err = tsx.QueryRow(`
 		SELECT group_name FROM fas_group
 		WHERE group_name = ? AND (cache_time + ?) > unixepoch('now','subsec');
 	`, groupname, cache.TTLSeconds).Scan(&groupname)
@@ -122,6 +127,7 @@ func (cache *EmailCacheClient) queryMembers(groupname string) ([]string, error) 
 		}
 		results = append(results, user)
 	}
+	tsx.Commit()
 	return results, nil
 }
 
