@@ -1,5 +1,7 @@
 # Goorphans
 
+[![builds.sr.ht status](https://builds.sr.ht/~gotmax23/goorphans/commits/main.svg)](https://builds.sr.ht/~gotmax23/goorphans/commits/main?)
+
 WIP tooling for managing the orphaned packages process and other Fedora
 releated things.
 
