@@ -32,11 +32,7 @@ func ArgsWrapper(f cobra.PositionalArgs) cobra.PositionalArgs {
 }
 
 // NoArgs wraps [cobra.NoArgs] with [ArgsWrapper]
-var NoArgs cobra.PositionalArgs
-
-func init() {
-	NoArgs = ArgsWrapper(cobra.NoArgs)
-}
+var NoArgs = ArgsWrapper(cobra.NoArgs)
 
 func NewRootCmd() *cobra.Command {
 	args := RootArgs{}
