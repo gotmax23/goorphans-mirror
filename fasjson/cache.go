@@ -93,8 +93,8 @@ func (cache *EmailCacheClient) GetUserEmail(username string) (string, error) {
 		return "", err
 	}
 	result = user.Emails[0]
-	cache.insertUserEmail(username, user.Emails[0])
-	return result, nil
+	err = cache.insertUserEmail(username, user.Emails[0])
+	return result, err
 }
 
 func (cache *EmailCacheClient) queryMembers(groupname string) ([]string, error) {
@@ -127,8 +127,8 @@ func (cache *EmailCacheClient) queryMembers(groupname string) ([]string, error) 
 		}
 		results = append(results, user)
 	}
-	tsx.Commit()
-	return results, nil
+	err = tsx.Commit()
+	return results, err
 }
 
 func (cache *EmailCacheClient) insertMembers(groupname string, members []string) error {

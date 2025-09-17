@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newNotifCmd() *cobra.Command {
+func newNotifCmd() *cobra.Command { //nolint:unused // TODO: Implement
 	notifCmd := &cobra.Command{
 		Use:   "notif",
 		Short: "Send individual notifications",

@@ -26,6 +26,9 @@ func newFas2emailCommand() *cobra.Command {
 		Short:   "Query FASJSON for user and group emails",
 		Aliases: []string{"f2e"},
 		PersistentPreRunE: func(cmd *cobra.Command, argv []string) error {
+			if ttl < 0 {
+				return fmt.Errorf("ttl cannot be negative")
+			}
 			cacheDir, err := common.CacheDir()
 			if err != nil {
 				return err

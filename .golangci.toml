@@ -1,0 +1,26 @@
+version = "2"
+
+[formatters]
+enable = [
+    "gofumpt",
+    "goimports",
+    "golines",
+]
+[formatters.settings.golines]
+max-len = 95
+tab-len = 4
+
+[linters]
+enable = [
+    # Defaults
+    "errcheck",
+    "govet",
+    "ineffassign",
+    "staticcheck",
+    "unused",
+    # Others
+    "bodyclose",
+]
+[[linters.exclusions.rules]]
+linters = ["errcheck"]
+source = '^\s*defer\s+'
