@@ -19,6 +19,8 @@ type RootArgs struct {
 
 // ArgsWrapper wraps Cobra.PositionalArgs functions and prints usage
 // information if there is an error.
+// This way, we can set SilenceUsage for other errors but still print the usage
+// for positional args errors.
 func ArgsWrapper(f cobra.PositionalArgs) cobra.PositionalArgs {
 	return func(cmd *cobra.Command, args []string) error {
 		err := f(cmd, args)
@@ -29,6 +31,7 @@ func ArgsWrapper(f cobra.PositionalArgs) cobra.PositionalArgs {
 	}
 }
 
+// NoArgs wraps [cobra.NoArgs] with [ArgsWrapper]
 var NoArgs cobra.PositionalArgs
 
 func init() {
@@ -46,6 +49,7 @@ func NewRootCmd() *cobra.Command {
 			args.HTTPClient = &http.Client{}
 			cmd.SetContext(context.WithValue(cmd.Context(), rootArgsKey, &args))
 		},
+		SilenceUsage: true,
 	}
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(
