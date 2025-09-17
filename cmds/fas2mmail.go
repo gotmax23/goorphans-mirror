@@ -40,9 +40,11 @@ func newFas2emailCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.PersistentFlags().Float64Var(&ttl, "ttl", fasjson.DefaultTTL, "Cache TTL in seconds")
+	cmd.PersistentFlags().
+		Float64Var(&ttl, "ttl", fasjson.DefaultTTL, "Cache TTL in seconds")
 	cmd.AddCommand(f2eClean())
 	cmd.AddCommand(f2eGet())
+	cmd.AddCommand(f2eGetFile())
 	return cmd
 }
 
@@ -76,5 +78,36 @@ func f2eGet() *cobra.Command {
 		},
 		Args: ArgsWrapper(cobra.MinimumNArgs(1)),
 	}
+	return cmd
+}
+
+func f2eGetFile() *cobra.Command {
+	var in, out string
+	cmd := &cobra.Command{
+		Use:     "get-file",
+		Aliases: []string{"getf"},
+		Short:   "Get emails for usernames or group names (name prefixed with @)",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(fas2emailArgsKey).(*Fas2emailArgs)
+			names, err := common.ReadFileLines(in)
+			if err != nil {
+				return err
+			}
+			emailm, err := args.Cache.GetAllEmailsMap(names)
+			if err != nil {
+				return err
+			}
+			emails := slices.Sorted(maps.Values(emailm))
+			return common.WriteFileLines(out, emails)
+		},
+		Args: NoArgs,
+	}
+	cmd.Flags().
+		StringVarP(
+			&in, "input", "i", "-",
+			"Input file containing newline-separated list; defaults to stdin",
+		)
+	cmd.Flags().
+		StringVarP(&out, "output", "o", "-", "Output file; defaults to stdout")
 	return cmd
 }
