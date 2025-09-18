@@ -10,6 +10,7 @@ import (
 const (
 	OrphansJSON = "orphans.json"
 	OrphansTXT  = "orphans.txt"
+	OrphanUID   = "orphan"
 )
 
 type Orphans struct {

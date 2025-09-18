@@ -12,6 +12,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	_ "github.com/mattn/go-sqlite3"
+	"go.gtmx.me/goorphans/common"
 )
 
 //go:embed schema.sql
@@ -225,13 +226,14 @@ func (cache *EmailCacheClient) GetMemberEmailsMap(
 	return emails, nil
 }
 
-// GetAllEmailsMap returns a map of username -> emails.
+// GetIterEmailsMap returns a map of username -> emails.
 // Names that start with "@" are treated as group names.
-func (cache *EmailCacheClient) GetAllEmailsMap(names []string) (map[string]string, error) {
+// [common.OrphanUID] is always excluded, even if it's included in names.
+func (cache *EmailCacheClient) GetIterEmailsMap(names iter.Seq[string]) (map[string]string, error) {
 	// Use a custom set type. We can have users repeated in names and the same
 	// user present in mutliple groups.
-	usernames := mapset.NewThreadUnsafeSetWithSize[string](len(names))
-	for _, name := range names {
+	usernames := mapset.NewThreadUnsafeSet[string]()
+	for name := range names {
 		group, found := strings.CutPrefix(name, "@")
 		if found {
 			members, err := cache.GetMembers(group)
@@ -243,5 +245,11 @@ func (cache *EmailCacheClient) GetAllEmailsMap(names []string) (map[string]strin
 			usernames.Add(name)
 		}
 	}
+	usernames.Remove(common.OrphanUID)
 	return cache.GetUserIterEmailsMap(mapset.Elements(usernames))
+}
+
+// GetAllEmailsMap is a wrapper around GetIterEmailsMap that accepts a slice.
+func (cache *EmailCacheClient) GetAllEmailsMap(names []string) (map[string]string, error) {
+	return cache.GetIterEmailsMap(slices.Values(names))
 }

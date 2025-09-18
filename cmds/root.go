@@ -13,7 +13,6 @@ type argsKeyType struct{ name string }
 var rootArgsKey = &argsKeyType{"root"}
 
 type RootArgs struct {
-	Dir        string
 	HTTPClient *http.Client
 }
 
@@ -35,6 +34,7 @@ func ArgsWrapper(f cobra.PositionalArgs) cobra.PositionalArgs {
 var NoArgs = ArgsWrapper(cobra.NoArgs)
 
 func NewRootCmd() *cobra.Command {
+	cobra.EnableTraverseRunHooks = true
 	args := RootArgs{}
 	rootCmd := &cobra.Command{
 		Use:   "goorphans",
@@ -47,16 +47,7 @@ func NewRootCmd() *cobra.Command {
 		},
 		SilenceUsage: true,
 	}
-	pflags := rootCmd.PersistentFlags()
-	pflags.StringVarP(
-		&args.Dir,
-		"dir",
-		"d",
-		"orphans",
-		"Directory containing orphans.txt and orphans.json",
-	)
-	// rootCmd.AddCommand(newNotifCmd())
-	rootCmd.AddCommand(newDownloadCmd())
+	rootCmd.AddCommand(newOrphansCommand())
 	rootCmd.AddCommand(newFas2emailCommand())
 	return rootCmd
 }

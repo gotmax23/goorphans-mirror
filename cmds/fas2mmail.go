@@ -19,8 +19,17 @@ type Fas2emailArgs struct {
 	Cache *fasjson.EmailCacheClient
 }
 
+func Fas2emailCache() (string, error) {
+	cacheDir, err := common.CacheDir()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(cacheDir, "fasjson.db"), err
+}
+
 func newFas2emailCommand() *cobra.Command {
 	var ttl float64
+	var db string
 	cmd := &cobra.Command{
 		Use:     "fas2email",
 		Short:   "Query FASJSON for user and group emails",
@@ -29,12 +38,14 @@ func newFas2emailCommand() *cobra.Command {
 			if ttl < 0 {
 				return fmt.Errorf("ttl cannot be negative")
 			}
-			cacheDir, err := common.CacheDir()
-			if err != nil {
-				return err
+			if db == "" {
+				var err error
+				db, err = Fas2emailCache()
+				if err != nil {
+					return err
+				}
 			}
-			p := path.Join(cacheDir, "fasjson.db")
-			cache, err := fasjson.OpenCacheDB(p, ttl)
+			cache, err := fasjson.OpenCacheDB(db, ttl)
 			if err != nil {
 				return err
 			}
@@ -45,6 +56,11 @@ func newFas2emailCommand() *cobra.Command {
 	}
 	cmd.PersistentFlags().
 		Float64Var(&ttl, "ttl", fasjson.DefaultTTL, "Cache TTL in seconds")
+	cmd.PersistentFlags().
+		StringVar(
+			&db, "db", "",
+			"Path to cache database. Defaults to $XDG_CACHE_HOME/goorphans/fasjson.db",
+		)
 	cmd.AddCommand(f2eClean())
 	cmd.AddCommand(f2eGet())
 	cmd.AddCommand(f2eGetFile())
