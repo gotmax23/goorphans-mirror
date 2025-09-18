@@ -187,9 +187,9 @@ func (cache *EmailCacheClient) GetMembers(groupname string) ([]string, error) {
 		memberstrings = append(memberstrings, member.Username)
 	}
 	if err = cache.insertMembers(groupname, memberstrings); err != nil {
-		return qresult, err
+		return memberstrings, err
 	}
-	return qresult, nil
+	return memberstrings, nil
 }
 
 // GetUserIterEmailsMap returns a map of username->email for multiple usernames.
