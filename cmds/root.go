@@ -49,6 +49,7 @@ func NewRootCmd() *cobra.Command {
 	}
 	rootCmd.AddCommand(newOrphansCommand())
 	rootCmd.AddCommand(newFas2emailCommand())
+	rootCmd.AddCommand(NewDistgitCmd())
 	return rootCmd
 }
 

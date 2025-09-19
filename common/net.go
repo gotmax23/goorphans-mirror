@@ -7,14 +7,23 @@ import (
 	"os"
 )
 
+type StatusCodeError struct {
+	StatusCode int
+	URL        string
+}
+
+func (e *StatusCodeError) Error() string {
+	return fmt.Sprintf(
+		"client failure: HTTP %v %s for url: %s",
+		e.StatusCode,
+		http.StatusText(e.StatusCode),
+		e.URL,
+	)
+}
+
 func CheckStatusCode(resp *http.Response) error {
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf(
-			"client failure: HTTP %v %s for url: %s",
-			resp.StatusCode,
-			http.StatusText(resp.StatusCode),
-			resp.Request.URL.String(),
-		)
+		return &StatusCodeError{resp.StatusCode, resp.Request.URL.String()}
 	}
 	return nil
 }
