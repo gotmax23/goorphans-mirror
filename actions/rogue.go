@@ -16,10 +16,10 @@ func GetRoguePackagerGroupMembers(
 	p *pagure.Client,
 ) (map[string][]string, error) {
 	packagers, err := f.GetMembers("packager")
-	packagerset := mapset.NewThreadUnsafeSet(packagers...)
 	if err != nil {
 		return nil, err
 	}
+	packagerset := mapset.NewThreadUnsafeSet(packagers...)
 	groups, err := p.GetGroups()
 	if err != nil {
 		return nil, err
