@@ -4,8 +4,11 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/spf13/cobra"
+	"go.gtmx.me/goorphans/common"
+	"go.gtmx.me/goorphans/fasjson"
 )
 
 type argsKeyType struct{ name string }
@@ -14,6 +17,24 @@ var rootArgsKey = &argsKeyType{"root"}
 
 type RootArgs struct {
 	HTTPClient *http.Client
+	CacheDir   string
+	TTL        float64
+	DBPath     string
+	fasCache   *fasjson.EmailCacheClient
+}
+
+func (args *RootArgs) FASCache() (*fasjson.EmailCacheClient, error) {
+	if args.fasCache != nil {
+		return args.fasCache, nil
+	}
+	if args.DBPath == "" {
+		args.DBPath = path.Join(args.CacheDir, "fasjson.db")
+	}
+	c, err := fasjson.OpenCacheDB(args.DBPath, args.TTL)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // ArgsWrapper wraps Cobra.PositionalArgs functions and prints usage
@@ -39,14 +60,25 @@ func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "goorphans",
 		Short: "Manage the Fedora orphaned packges process announcements",
-		PersistentPreRun: func(cmd *cobra.Command, argv []string) {
-			// rclient := retryablehttp.NewClient()
-			// args.HTTPClient = rclient.StandardClient()
+		PersistentPreRunE: func(cmd *cobra.Command, argv []string) error {
 			args.HTTPClient = &http.Client{}
+			c, err := common.CacheDir()
+			if err != nil {
+				return err
+			}
+			args.CacheDir = c
 			cmd.SetContext(context.WithValue(cmd.Context(), rootArgsKey, &args))
+			return nil
 		},
 		SilenceUsage: true,
 	}
+	rootCmd.PersistentFlags().
+		Float64Var(&args.TTL, "fasjson-ttl", fasjson.DefaultTTL, "TTL for the FASJSON cache")
+	rootCmd.PersistentFlags().
+		StringVar(
+			&args.DBPath, "fasjson-db", "",
+			"Path to cache database. Defaults to $XDG_CACHE_HOME/goorphans/fasjson.db",
+		)
 	rootCmd.AddCommand(newOrphansCommand())
 	rootCmd.AddCommand(newFas2emailCommand())
 	rootCmd.AddCommand(NewDistgitCmd())

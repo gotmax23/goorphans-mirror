@@ -28,24 +28,13 @@ func Fas2emailCache() (string, error) {
 }
 
 func newFas2emailCommand() *cobra.Command {
-	var ttl float64
-	var db string
 	cmd := &cobra.Command{
 		Use:     "fas2email",
 		Short:   "Query FASJSON for user and group emails",
 		Aliases: []string{"f2e"},
 		PersistentPreRunE: func(cmd *cobra.Command, argv []string) error {
-			if ttl < 0 {
-				return fmt.Errorf("ttl cannot be negative")
-			}
-			if db == "" {
-				var err error
-				db, err = Fas2emailCache()
-				if err != nil {
-					return err
-				}
-			}
-			cache, err := fasjson.OpenCacheDB(db, ttl)
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			cache, err := rargs.FASCache()
 			if err != nil {
 				return err
 			}
@@ -54,13 +43,6 @@ func newFas2emailCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.PersistentFlags().
-		Float64Var(&ttl, "ttl", fasjson.DefaultTTL, "Cache TTL in seconds")
-	cmd.PersistentFlags().
-		StringVar(
-			&db, "db", "",
-			"Path to cache database. Defaults to $XDG_CACHE_HOME/goorphans/fasjson.db",
-		)
 	cmd.AddCommand(f2eClean())
 	cmd.AddCommand(f2eGet())
 	cmd.AddCommand(f2eGetFile())

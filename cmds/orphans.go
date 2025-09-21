@@ -69,15 +69,7 @@ func loadOrphans(dir string) (*common.Orphans, error) {
 	return common.LoadOrphans(path.Join(dir, common.OrphansJSON))
 }
 
-func emails(data *common.Orphans) ([]string, error) {
-	db, err := Fas2emailCache()
-	if err != nil {
-		return []string{}, err
-	}
-	cache, err := fasjson.OpenCacheDB(db, fasjson.DefaultTTL)
-	if err != nil {
-		return []string{}, err
-	}
+func emails(cache *fasjson.EmailCacheClient, data *common.Orphans) ([]string, error) {
 	emailm, err := cache.GetIterEmailsMap(maps.Keys(data.AllAffectedPeople))
 	if err != nil {
 		return []string{}, err
@@ -90,13 +82,17 @@ func oAddrs() *cobra.Command {
 		Use:   "addrs",
 		Short: "Get email address for all_affected_people",
 		RunE: func(cmd *cobra.Command, argv []string) error {
-			// rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
+			c, err := rargs.FASCache()
+			if err != nil {
+				return err
+			}
 			data, err := loadOrphans(args.Dir)
 			if err != nil {
 				return err
 			}
-			emails, err := emails(data)
+			emails, err := emails(c, data)
 			if err != nil {
 				return err
 			}
