@@ -4,9 +4,12 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"maps"
 	"net/url"
 	"os"
+	"slices"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/actions"
 	"go.gtmx.me/goorphans/common"
@@ -40,7 +43,7 @@ func NewDistgitCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&distgit, "distgit", DefaultDistgitURL, "distgit URL")
 	cmd.AddCommand(dgRogue())
 	cmd.AddCommand(dgProject())
-	cmd.AddCommand(dgProjectMaints())
+	cmd.AddCommand(dgMaintEmails())
 	return cmd
 }
 
@@ -63,6 +66,37 @@ func dgRogue() *cobra.Command {
 			return JSONToStdout(r)
 		},
 	}
+	return cmd
+}
+
+func dgMaintEmails() *cobra.Command {
+	prefix := "rpms/"
+	cmd := &cobra.Command{
+		Use:   "maint-emails PACKAGE...",
+		Short: "Get package maintainer emails",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			f, err := rargs.FASCache()
+			if err != nil {
+				return err
+			}
+			s := mapset.NewThreadUnsafeSet[string]()
+			for _, p := range argv {
+				m, err := args.Client.GetAllMaints(prefix + p)
+				if err != nil {
+					return err
+				}
+				s.Append(m...)
+			}
+			mails, err := f.GetIterEmailsMap(mapset.Elements(s))
+			if err != nil {
+				return err
+			}
+			return common.WriteFileLines("-", slices.Sorted(maps.Values(mails)))
+		},
+	}
+	cmd.Flags().StringVar(&prefix, "prefix", prefix, "Pagure project prefix")
 	return cmd
 }
 
@@ -101,6 +135,7 @@ func dgProjectInfo() *cobra.Command {
 		},
 		Args: ArgsWrapper(cobra.ExactArgs(1)),
 	}
+	cmd.AddCommand(dgProjectMaints())
 	return cmd
 }
 
@@ -115,7 +150,8 @@ func dgProjectMaints() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return common.WriteFileLines("", maints)
+			slices.Sort(maints)
+			return common.WriteFileLines("-", maints)
 		},
 		Args: ArgsWrapper(cobra.ExactArgs(1)),
 	}

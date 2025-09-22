@@ -103,5 +103,5 @@ func (c *Client) GetAllMaints(project string) ([]string, error) {
 	for _, g := range data.Groups.Ticket {
 		s.Add("@" + g)
 	}
-	return mapset.Sorted(s), nil
+	return s.ToSlice(), nil
 }
