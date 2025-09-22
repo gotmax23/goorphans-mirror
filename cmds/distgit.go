@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"os"
 
@@ -60,14 +59,8 @@ func dgRogue() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			// TODO: Print results as JSON for now
-			j, err := json.MarshalIndent(r, "", "  ")
-			if err != nil {
-				return err
-			}
-			fmt.Println(string(j))
-			return nil
+			return JSONToStdout(r)
 		},
 	}
 	return cmd
