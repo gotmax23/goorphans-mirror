@@ -46,6 +46,7 @@ func newFas2emailCommand() *cobra.Command {
 	cmd.AddCommand(f2eClean())
 	cmd.AddCommand(f2eGet())
 	cmd.AddCommand(f2eGetFile())
+	cmd.AddCommand(f2eMembers())
 	return cmd
 }
 
@@ -108,6 +109,27 @@ func f2eGetFile() *cobra.Command {
 			&in, "input", "i", "-",
 			"Input file containing newline-separated list; defaults to stdin",
 		)
+	cmd.Flags().
+		StringVarP(&out, "output", "o", "-", "Output file; defaults to stdout")
+	return cmd
+}
+
+func f2eMembers() *cobra.Command {
+	var out string
+	cmd := &cobra.Command{
+		Use:   "members GROUP",
+		Short: "Get the members of a group",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(fas2emailArgsKey).(*Fas2emailArgs)
+			members, err := args.Cache.GetMembers(argv[0])
+			if err != nil {
+				return err
+			}
+			slices.Sort(members)
+			return common.WriteFileLines(out, members)
+		},
+		Args: ArgsWrapper(cobra.ExactArgs(1)),
+	}
 	cmd.Flags().
 		StringVarP(&out, "output", "o", "-", "Output file; defaults to stdout")
 	return cmd
