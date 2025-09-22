@@ -95,6 +95,7 @@ func dgMaintEmails() *cobra.Command {
 			}
 			return common.WriteFileLines("-", slices.Sorted(maps.Values(mails)))
 		},
+		Args: ArgsWrapper(cobra.MinimumNArgs(1)),
 	}
 	cmd.Flags().StringVar(&prefix, "prefix", prefix, "Pagure project prefix")
 	return cmd
