@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"slices"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"go.gtmx.me/goorphans/common"
@@ -40,6 +41,7 @@ func GetRoguePackagerGroupMembers(
 			return r, err
 		}
 		badmembers := []string{}
+		slices.Sort(members)
 		for _, member := range members {
 			if !packagerset.Contains(member) {
 				badmembers = append(badmembers, member)
