@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/actions"
 	"go.gtmx.me/goorphans/common"
-	"go.gtmx.me/goorphans/fasjson"
 	"go.gtmx.me/goorphans/pagure"
 )
 
@@ -52,11 +51,8 @@ func dgRogue() *cobra.Command {
 		Short: "Get \"rogue\" distgit group members who are not packagers",
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
-			db, err := Fas2emailCache()
-			if err != nil {
-				return err
-			}
-			f, err := fasjson.OpenCacheDB(db, fasjson.DefaultTTL)
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			f, err := rargs.FASCache()
 			if err != nil {
 				return err
 			}
