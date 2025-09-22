@@ -5,7 +5,6 @@ package pagure
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -42,7 +41,6 @@ func NewClient(url *url.URL, client *http.Client) *Client {
 }
 
 func (c *Client) get(dest any, path *url.URL) error {
-	log.Printf("GET %s\n", path.String())
 	resp, err := c.Client.Get(path.String())
 	if err != nil {
 		return err

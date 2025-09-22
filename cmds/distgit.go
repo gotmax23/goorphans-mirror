@@ -1,13 +1,16 @@
 package cmds
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/actions"
+	"go.gtmx.me/goorphans/common"
 	"go.gtmx.me/goorphans/fasjson"
 	"go.gtmx.me/goorphans/pagure"
 )
@@ -38,6 +41,8 @@ func NewDistgitCmd() *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&distgit, "distgit", DefaultDistgitURL, "distgit URL")
 	cmd.AddCommand(dgRogue())
+	cmd.AddCommand(dgProject())
+	cmd.AddCommand(dgProjectMaints())
 	return cmd
 }
 
@@ -68,6 +73,62 @@ func dgRogue() *cobra.Command {
 			fmt.Println(string(j))
 			return nil
 		},
+	}
+	return cmd
+}
+
+func JSONToStdout(data any) error {
+	w := bufio.NewWriter(os.Stdout)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	err := enc.Encode(data)
+	if err != nil {
+		return err
+	}
+	return w.Flush()
+}
+
+func dgProject() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "project",
+		Short:   "Generic commands for dealing with Pagure projects",
+		Aliases: []string{"p"},
+	}
+	cmd.AddCommand(dgProjectInfo())
+	cmd.AddCommand(dgProjectMaints())
+	return cmd
+}
+
+func dgProjectInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "info PROJECT",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
+			data, err := args.Client.GetProject(argv[0])
+			if err != nil {
+				return err
+			}
+			return JSONToStdout(data)
+		},
+		Args: ArgsWrapper(cobra.ExactArgs(1)),
+	}
+	return cmd
+}
+
+func dgProjectMaints() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "maints PROJECT",
+		Short:   "Print out all maintainers of a project as a single list. Groups are @-prefixed.",
+		Aliases: []string{"maintainers"},
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
+			maints, err := args.Client.GetAllMaints(argv[0])
+			if err != nil {
+				return err
+			}
+			return common.WriteFileLines("", maints)
+		},
+		Args: ArgsWrapper(cobra.ExactArgs(1)),
 	}
 	return cmd
 }
