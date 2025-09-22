@@ -6,7 +6,6 @@ import (
 	"maps"
 	"path"
 	"slices"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/common"
@@ -65,6 +64,7 @@ func f2eClean() *cobra.Command {
 }
 
 func f2eGet() *cobra.Command {
+	var out string
 	cmd := &cobra.Command{
 		Use:   "get NAME...",
 		Short: "Get emails for usernames or group names (args prefixed with @)",
@@ -75,11 +75,12 @@ func f2eGet() *cobra.Command {
 				return err
 			}
 			emails := slices.Sorted(maps.Values(emailm))
-			fmt.Println(strings.Join(emails, "\n"))
-			return nil
+			return common.WriteFileLines(out, emails)
 		},
 		Args: ArgsWrapper(cobra.MinimumNArgs(1)),
 	}
+	cmd.Flags().
+		StringVarP(&out, "output", "o", "-", "Output file; defaults to stdout")
 	return cmd
 }
 
