@@ -7,6 +7,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/actions"
@@ -57,7 +58,16 @@ func oDownload() *cobra.Command {
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
-			return actions.Download(rargs.HTTPClient, baseurl, args.Dir)
+			d, err := actions.DownloadWithOrphans(rargs.HTTPClient, baseurl, args.Dir)
+			if err != nil {
+				return err
+			}
+			if d.FinishedAt != nil {
+				elapsed := time.Since(*d.FinishedAt)
+				// This data is supposed to be updated once an hour, so just print minutes.
+				fmt.Printf("Data was refreshed %.0f minutes ago\n", elapsed.Minutes())
+			}
+			return nil
 		},
 		Args: NoArgs,
 	}

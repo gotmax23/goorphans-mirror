@@ -26,6 +26,10 @@ type Orphans struct {
 	OrphansNotBreakingDeps      []string             `json:"orphans_not_breaking_deps"`
 	OrphansNotBreakingDepsStale []string             `json:"orphans_not_breaking_deps_stale"`
 	StatusChange                map[string]time.Time `json:"status_change"`
+	// NOTE(gotmax23): started_at and finished_at are extensions I added that
+	// have not yet been committed to the releng repository.
+	StartedAt  *time.Time `json:"started_at,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
 }
 
 func LoadOrphans(path string) (*Orphans, error) {
