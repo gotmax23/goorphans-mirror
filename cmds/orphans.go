@@ -20,8 +20,26 @@ const DefaultURL = "https://a.gtmx.me/orphans/"
 var orphansArgsKey = &argsKeyType{"orphans"}
 
 type OrphansArgs struct {
-	Dir string
-	// TTL float64
+	BaseURL     string
+	Dir         string
+	Download    bool
+	RootArgs    *RootArgs
+	orphansData *common.Orphans
+}
+
+func (args *OrphansArgs) OrphansData() (*common.Orphans, error) {
+	if args.orphansData != nil {
+		return args.orphansData, nil
+	}
+	if args.Download {
+		o, err := actions.DownloadWithOrphans(args.RootArgs.HTTPClient, args.BaseURL, args.Dir)
+		if err != nil {
+			return o, err
+		}
+		args.orphansData = o
+		return o, nil
+	}
+	return common.LoadOrphans(path.Join(args.Dir, common.OrphansJSON))
 }
 
 func newOrphansCommand() *cobra.Command {
@@ -31,6 +49,8 @@ func newOrphansCommand() *cobra.Command {
 		Aliases: []string{"o"},
 		Short:   "Subcommands relating to Orphaned Packages Process",
 		PersistentPreRun: func(cmd *cobra.Command, argv []string) {
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			args.RootArgs = rargs
 			cmd.SetContext(context.WithValue(cmd.Context(), orphansArgsKey, args))
 		},
 	}
@@ -42,41 +62,45 @@ func newOrphansCommand() *cobra.Command {
 		"orphans",
 		"Directory containing orphans.txt and orphans.json",
 	)
-	// cmd.PersistentFlags().
-	// 	Float64Var(&args.TTL, "ttl", fasjson.DefaultTTL, "Cache TTL in seconds")
+	pflags.StringVar(&args.BaseURL, "baseurl", DefaultURL, "Baseurl")
+	pflags.BoolVar(&args.Download, "download", false, "Download new orphans data")
 	cmd.AddCommand(oDownload())
 	cmd.AddCommand(oAddrs())
+	cmd.AddCommand(oLastUpdated())
 	return cmd
 }
 
 func oDownload() *cobra.Command {
-	var baseurl string
 	cmd := &cobra.Command{
 		Use:     "download",
 		Aliases: []string{"d"},
-		Short:   "Download orphans data from URL to --dir",
+		Short:   "Download orphans data from baseurl to --dir",
 		RunE: func(cmd *cobra.Command, argv []string) error {
-			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
-			d, err := actions.DownloadWithOrphans(rargs.HTTPClient, baseurl, args.Dir)
+			args.Download = true
+			d, err := args.OrphansData()
 			if err != nil {
 				return err
 			}
-			if d.FinishedAt != nil {
-				elapsed := time.Since(*d.FinishedAt)
-				// This data is supposed to be updated once an hour, so just print minutes.
-				fmt.Printf("Data was refreshed %.0f minutes ago\n", elapsed.Minutes())
-			}
+			_, _ = lastUpdated(d, false)
 			return nil
 		},
 		Args: NoArgs,
 	}
-	cmd.Flags().StringVar(&baseurl, "url", DefaultURL, "Baseurl")
 	return cmd
 }
 
-func loadOrphans(dir string) (*common.Orphans, error) {
-	return common.LoadOrphans(path.Join(dir, common.OrphansJSON))
+func lastUpdated(d *common.Orphans, warn bool) (*time.Duration, error) {
+	if d.FinishedAt != nil {
+		elapsed := time.Since(*d.FinishedAt)
+		// This data is supposed to be updated once an hour, so just print minutes.
+		fmt.Printf("Data was refreshed %.0f minutes ago\n", elapsed.Minutes())
+		return &elapsed, nil
+	}
+	if warn {
+		return nil, fmt.Errorf("finished_at was not included in the orphans data")
+	}
+	return nil, nil
 }
 
 func emails(cache *fasjson.EmailCacheClient, data *common.Orphans) ([]string, error) {
@@ -87,18 +111,34 @@ func emails(cache *fasjson.EmailCacheClient, data *common.Orphans) ([]string, er
 	return slices.Sorted(maps.Values(emailm)), nil
 }
 
+func oLastUpdated() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "last-updated",
+		Short: "Load the local orphans data and how long it's been since the last update",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
+			d, err := args.OrphansData()
+			if err != nil {
+				return err
+			}
+			_, err = lastUpdated(d, true)
+			return err
+		},
+	}
+	return cmd
+}
+
 func oAddrs() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addrs",
 		Short: "Get email address for all_affected_people",
 		RunE: func(cmd *cobra.Command, argv []string) error {
-			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
-			c, err := rargs.FASCache()
+			c, err := args.RootArgs.FASCache()
 			if err != nil {
 				return err
 			}
-			data, err := loadOrphans(args.Dir)
+			data, err := args.OrphansData()
 			if err != nil {
 				return err
 			}
