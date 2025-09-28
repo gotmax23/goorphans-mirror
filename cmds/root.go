@@ -2,12 +2,13 @@ package cmds
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
-	"go.gtmx.me/goorphans/common"
+	"github.com/spf13/cobra/doc"
+	"go.gtmx.me/goorphans/config"
 	"go.gtmx.me/goorphans/fasjson"
 )
 
@@ -17,9 +18,7 @@ var rootArgsKey = &argsKeyType{"root"}
 
 type RootArgs struct {
 	HTTPClient *http.Client
-	CacheDir   string
-	TTL        float64
-	DBPath     string
+	Config     *config.Config
 	fasCache   *fasjson.EmailCacheClient
 }
 
@@ -27,10 +26,7 @@ func (args *RootArgs) FASCache() (*fasjson.EmailCacheClient, error) {
 	if args.fasCache != nil {
 		return args.fasCache, nil
 	}
-	if args.DBPath == "" {
-		args.DBPath = path.Join(args.CacheDir, "fasjson.db")
-	}
-	c, err := fasjson.OpenCacheDB(args.DBPath, args.TTL)
+	c, err := fasjson.OpenCacheDB(args.Config.FASJSON.DB, args.Config.FASJSON.TTL)
 	if err != nil {
 		return nil, err
 	}
@@ -55,40 +51,82 @@ func ArgsWrapper(f cobra.PositionalArgs) cobra.PositionalArgs {
 var NoArgs = ArgsWrapper(cobra.NoArgs)
 
 func NewRootCmd() *cobra.Command {
+	var configPath string
+	var ttl float64
+	var dbPath string
 	cobra.EnableTraverseRunHooks = true
 	args := RootArgs{}
 	rootCmd := &cobra.Command{
 		Use:   "goorphans",
 		Short: "Manage the Fedora orphaned packges process announcements",
 		PersistentPreRunE: func(cmd *cobra.Command, argv []string) error {
-			args.HTTPClient = &http.Client{}
-			c, err := common.CacheDir()
+			if cmd.Name() == "__complete" {
+				return nil
+			}
+			// TODO: Either document that --config="" disables config loading
+			// or remove this behaivor.
+			if !cmd.PersistentFlags().Changed("config") {
+				configPath = config.DefaultSentinel
+			}
+			config, err := config.LoadConfig(configPath)
 			if err != nil {
 				return err
 			}
-			args.CacheDir = c
+			args.Config = config
+			if cmd.PersistentFlags().Changed("fasjson-ttl") {
+				args.Config.FASJSON.TTL = ttl
+			}
+			if cmd.PersistentFlags().Changed("fasjson-db") {
+				args.Config.FASJSON.DB = dbPath
+			}
+			// err = args.Config.SMTP.Validate()
+			// if err != nil {
+			// 	return err
+			// }
+			args.HTTPClient = &http.Client{}
 			cmd.SetContext(context.WithValue(cmd.Context(), rootArgsKey, &args))
 			return nil
 		},
 		SilenceUsage: true,
 	}
 	rootCmd.PersistentFlags().
-		Float64Var(&args.TTL, "fasjson-ttl", fasjson.DefaultTTL, "TTL for the FASJSON cache")
+		StringVarP(
+			&configPath, "config", "c", "",
+			"Path to config. Defaults to $XDG_CONFIG_HOME/goorphans.toml.",
+		)
+	rootCmd.PersistentFlags().
+		Float64Var(&ttl, "fasjson-ttl", 0, "TTL for the FASJSON cache")
 	rootCmd.PersistentFlags().
 		StringVar(
-			&args.DBPath, "fasjson-db", "",
+			&dbPath, "fasjson-db", "",
 			"Path to cache database. Defaults to $XDG_CACHE_HOME/goorphans/fasjson.db",
 		)
 	rootCmd.AddCommand(newOrphansCommand())
 	rootCmd.AddCommand(newFas2emailCommand())
 	rootCmd.AddCommand(NewDistgitCmd())
+	rootCmd.AddCommand(newDocsGenCmd())
 	return rootCmd
 }
 
-// rootCmd represents the base command when called without any subcommands
+// TODO: Playing around with docs gen
+func newDocsGenCmd() *cobra.Command {
+	out := "docs"
+	cmd := &cobra.Command{
+		Use:    "_docs",
+		Hidden: true,
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			if err := os.Mkdir(out, 0o755); err != nil && !errors.Is(err, os.ErrExist) {
+				return err
+			}
+			root := NewRootCmd()
+			root.DisableAutoGenTag = true
+			return doc.GenMarkdownTree(root, out)
+		},
+	}
+	cmd.Flags().StringVarP(&out, "out", "o", out, "")
+	return cmd
+}
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := NewRootCmd().Execute()
 	if err != nil {

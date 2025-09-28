@@ -59,13 +59,13 @@ type Contributors struct {
 }
 
 type ContributorsRoles struct {
-	Admin         []string `json:"admin"`
-	Collaborators []ContributorsCollaborators
-	Commit        []string `json:"commit"`
-	Ticket        []string `json:"ticket"`
+	Admin         []string                   `json:"admin"`
+	Collaborators []ContributorsCollaborator `json:"collaborators"`
+	Commit        []string                   `json:"commit"`
+	Ticket        []string                   `json:"ticket"`
 }
 
-type ContributorsCollaborators struct {
+type ContributorsCollaborator struct {
 	Branches string `json:"branches"`
 	User     string `json:"user"`
 }
@@ -79,7 +79,7 @@ func (c *Client) GetContributors(project string) (*Contributors, error) {
 // GetAllMaints is a helper function to get a list of all project maintainers.
 // Groups are @-prefixed.
 // EXPERIMENTAL!
-func (c *Client) GetAllMaints(project string) ([]string, error) {
+func (c *Client) GetAllMaints(project string, includeGroups bool) ([]string, error) {
 	data, err := c.GetContributors(project)
 	if err != nil {
 		return []string{}, err
@@ -91,17 +91,19 @@ func (c *Client) GetAllMaints(project string) ([]string, error) {
 		s.Add(c.User)
 	}
 	s.Append(data.Users.Ticket...)
-	for _, g := range data.Groups.Admin {
-		s.Add("@" + g)
-	}
-	for _, g := range data.Groups.Commit {
-		s.Add("@" + g)
-	}
-	for _, c := range data.Groups.Collaborators {
-		s.Add("@" + c.User)
-	}
-	for _, g := range data.Groups.Ticket {
-		s.Add("@" + g)
+	if includeGroups {
+		for _, g := range data.Groups.Admin {
+			s.Add("@" + g)
+		}
+		for _, g := range data.Groups.Commit {
+			s.Add("@" + g)
+		}
+		for _, c := range data.Groups.Collaborators {
+			s.Add("@" + c.User)
+		}
+		for _, g := range data.Groups.Ticket {
+			s.Add("@" + g)
+		}
 	}
 	return s.ToSlice(), nil
 }

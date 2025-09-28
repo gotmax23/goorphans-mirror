@@ -71,6 +71,7 @@ func dgRogue() *cobra.Command {
 
 func dgMaintEmails() *cobra.Command {
 	prefix := "rpms/"
+	noGroups := false
 	cmd := &cobra.Command{
 		Use:   "maint-emails PACKAGE...",
 		Short: "Get package maintainer emails",
@@ -83,7 +84,7 @@ func dgMaintEmails() *cobra.Command {
 			}
 			s := mapset.NewThreadUnsafeSet[string]()
 			for _, p := range argv {
-				m, err := args.Client.GetAllMaints(prefix + p)
+				m, err := args.Client.GetAllMaints(prefix+p, !noGroups)
 				if err != nil {
 					return err
 				}
@@ -98,6 +99,7 @@ func dgMaintEmails() *cobra.Command {
 		Args: ArgsWrapper(cobra.MinimumNArgs(1)),
 	}
 	cmd.Flags().StringVar(&prefix, "prefix", prefix, "Pagure project prefix")
+	cmd.Flags().BoolVarP(&noGroups, "no-groups", "G", noGroups, "Don't expand groups")
 	return cmd
 }
 
@@ -141,13 +143,14 @@ func dgProjectInfo() *cobra.Command {
 }
 
 func dgProjectMaints() *cobra.Command {
+	noGroups := false
 	cmd := &cobra.Command{
 		Use:     "maints PROJECT",
 		Short:   "Print out all maintainers of a project as a single list. Groups are @-prefixed.",
 		Aliases: []string{"maintainers"},
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
-			maints, err := args.Client.GetAllMaints(argv[0])
+			maints, err := args.Client.GetAllMaints(argv[0], !noGroups)
 			if err != nil {
 				return err
 			}
@@ -156,5 +159,6 @@ func dgProjectMaints() *cobra.Command {
 		},
 		Args: ArgsWrapper(cobra.ExactArgs(1)),
 	}
+	cmd.Flags().BoolVarP(&noGroups, "no-groups", "G", noGroups, "Don't expand groups")
 	return cmd
 }
