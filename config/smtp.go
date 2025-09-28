@@ -19,13 +19,13 @@ const (
 )
 
 type SMTPConfig struct {
-	Host        string `koanf:"host"`
-	Port        int    `koanf:"port"`
-	Username    string `koanf:"username"`
-	Password    string `koanf:"password"`
-	PasswordCmd any    `koanf:"password_cmd"`
-	From        string `koanf:"from"`
-	Secure      string `koanf:"secure"`
+	Host        string `toml:"host"         env:"HOST"`
+	Port        int    `toml:"port"         env:"PORT"`
+	Username    string `toml:"username"     env:"USERNAME"`
+	Password    string `toml:"password"     env:"PASSWORD,unset"`
+	PasswordCmd any    `toml:"password_cmd" env:"PASWORD_CMD"`
+	From        string `toml:"from"         env:"FROM"`
+	Secure      string `toml:"secure"       env:"SECURE"`
 }
 
 // Validate is overcomplicated code to parse SMTPConfig and handle unset

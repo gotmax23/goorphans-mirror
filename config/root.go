@@ -2,15 +2,12 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
-	"strings"
 
-	"github.com/go-viper/mapstructure/v2"
-	"github.com/knadh/koanf/parsers/toml/v2"
-	"github.com/knadh/koanf/providers/env/v2"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
+	"github.com/caarlos0/env/v11"
+	"github.com/pelletier/go-toml/v2"
 	"go.gtmx.me/goorphans/common"
 	"go.gtmx.me/goorphans/fasjson"
 )
@@ -18,30 +15,25 @@ import (
 const DefaultSentinel = "--DEFAULT--"
 
 type Config struct {
-	SMTP     SMTPConfig    `koanf:"smtp"`
-	FASJSON  FASJSONConfig `koanf:"fasjson"`
+	SMTP     SMTPConfig    `toml:"smtp"    envPrefix:"SMTP_"`
+	FASJSON  FASJSONConfig `toml:"fasjson" envPrefix:"FASJSON_"`
 	CacheDir string
 }
 
 type FASJSONConfig struct {
-	TTL float64 `koanf:"ttl"`
-	DB  string  `koanf:"db"`
+	TTL float64 `toml:"ttl" env:"TTL"`
+	DB  string  `toml:"db"  env:"DB"`
 }
 
 func LoadConfig(p string) (*Config, error) {
+	var config Config
 	cacheDir, err := common.CacheDir()
 	if err != nil {
 		return nil, err
 	}
-	k := koanf.New(".")
-	err = k.Set("fasjson.ttl", fasjson.DefaultTTL)
-	if err != nil {
-		panic(err)
-	}
-	err = k.Set("fasjson.db", path.Join(cacheDir, "fasjson.db"))
-	if err != nil {
-		panic(err)
-	}
+	config.FASJSON.TTL = fasjson.DefaultTTL
+	config.FASJSON.DB = path.Join(cacheDir, "fasjson.db")
+	config.CacheDir = cacheDir
 
 	wasDefault := false
 	if p == DefaultSentinel {
@@ -53,42 +45,20 @@ func LoadConfig(p string) (*Config, error) {
 		wasDefault = true
 	}
 	if p != "" {
-		err = k.Load(file.Provider(p), toml.Parser())
+		f, err := os.Open(p)
 		if err != nil {
 			if !wasDefault || !errors.Is(err, os.ErrNotExist) {
 				return nil, err
 			}
 		}
+		err = toml.NewDecoder(f).Decode(&config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %w", p, err)
+		}
 	}
-	envprefix := "GOORPHANS_"
-	err = k.Load(env.Provider(".", env.Opt{
-		Prefix: envprefix,
-		TransformFunc: func(k, v string) (string, any) {
-			k = strings.ReplaceAll(
-				strings.ToLower(strings.TrimPrefix(k, envprefix)),
-				"__", ".",
-			)
-			return k, v
-		},
-	}), nil)
+	err = env.ParseWithOptions(&config, env.Options{Prefix: "GOORPHANS_"})
 	if err != nil {
 		return nil, err
 	}
-	var config Config
-	err = k.UnmarshalWithConf(
-		"",
-		&config,
-		koanf.UnmarshalConf{
-			DecoderConfig: &mapstructure.DecoderConfig{
-				TagName:          "koanf",
-				ErrorUnused:      true,
-				WeaklyTypedInput: true,
-			},
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	config.CacheDir = cacheDir
 	return &config, nil
 }
