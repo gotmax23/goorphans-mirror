@@ -29,6 +29,7 @@ func NewDistgitCmd() *cobra.Command {
 	var args DistgitArgs
 	cmd := &cobra.Command{
 		Use:     "distgit",
+		Short:   "Commands for working with Fedora distgit",
 		Aliases: []string{"dg"},
 		PersistentPreRunE: func(cmd *cobra.Command, argv []string) error {
 			u, err := url.Parse(distgit)
