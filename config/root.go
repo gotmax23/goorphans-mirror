@@ -15,14 +15,20 @@ import (
 const DefaultSentinel = "--DEFAULT--"
 
 type Config struct {
-	SMTP     SMTPConfig    `toml:"smtp"    envPrefix:"SMTP_"`
-	FASJSON  FASJSONConfig `toml:"fasjson" envPrefix:"FASJSON_"`
-	CacheDir string
+	SMTP    SMTPConfig    `toml:"smtp"    envPrefix:"SMTP_"`
+	FASJSON FASJSONConfig `toml:"fasjson" envPrefix:"FASJSON_"`
+	Orphans OrphansConfig `toml:"orphans" envPrefix:"ORPHANS_"`
+	// CacheDir string
 }
 
 type FASJSONConfig struct {
 	TTL float64 `toml:"ttl" env:"TTL"`
 	DB  string  `toml:"db"  env:"DB"`
+}
+
+type OrphansConfig struct {
+	BaseURL  string `toml:"baseurl"  env:"BASEURL"`
+	Download bool   `toml:"download" env:"DOWNLOAD"`
 }
 
 func LoadConfig(p string) (*Config, error) {
@@ -33,7 +39,8 @@ func LoadConfig(p string) (*Config, error) {
 	}
 	config.FASJSON.TTL = fasjson.DefaultTTL
 	config.FASJSON.DB = path.Join(cacheDir, "fasjson.db")
-	config.CacheDir = cacheDir
+	// config.CacheDir = cacheDir
+	config.Orphans.BaseURL = common.OrphansBaseURL
 
 	wasDefault := false
 	if p == DefaultSentinel {
