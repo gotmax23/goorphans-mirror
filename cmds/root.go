@@ -2,9 +2,11 @@ package cmds
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 
+	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/config"
 	"go.gtmx.me/goorphans/fasjson"
@@ -63,7 +65,7 @@ func NewRootCmd() *cobra.Command {
 			}
 			// TODO: Either document that --config="" disables config loading
 			// or remove this behaivor.
-			if !cmd.PersistentFlags().Changed("config") {
+			if !cmd.Root().PersistentFlags().Changed("config") {
 				configPath = config.DefaultSentinel
 			}
 			config, err := config.LoadConfig(configPath)
@@ -71,10 +73,10 @@ func NewRootCmd() *cobra.Command {
 				return err
 			}
 			args.Config = config
-			if cmd.PersistentFlags().Changed("fasjson-ttl") {
+			if cmd.Root().PersistentFlags().Changed("fasjson-ttl") {
 				args.Config.FASJSON.TTL = ttl
 			}
-			if cmd.PersistentFlags().Changed("fasjson-db") {
+			if cmd.Root().PersistentFlags().Changed("fasjson-db") {
 				args.Config.FASJSON.DB = dbPath
 			}
 			// err = args.Config.SMTP.Validate()
@@ -102,8 +104,26 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newOrphansCommand())
 	rootCmd.AddCommand(newFas2emailCommand())
 	rootCmd.AddCommand(NewDistgitCmd())
+	rootCmd.AddCommand(newDumpConfigCmd())
 	// rootCmd.AddCommand(newDocsGenCmd())
 	return rootCmd
+}
+
+func newDumpConfigCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dump-config",
+		Short: "Dump configuration as TOML",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			b, err := toml.Marshal(rargs.Config)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(b))
+			return nil
+		},
+	}
+	return cmd
 }
 
 // TODO: Playing around with docs gen
