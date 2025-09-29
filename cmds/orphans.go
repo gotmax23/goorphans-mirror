@@ -63,7 +63,7 @@ func newOrphansCommand() *cobra.Command {
 		"Directory containing orphans.txt and orphans.json",
 	)
 	pflags.StringVar(&args.BaseURL, "baseurl", DefaultURL, "Baseurl")
-	pflags.BoolVar(&args.Download, "download", false, "Download new orphans data")
+	pflags.BoolVarP(&args.Download, "download", "r", false, "Download new orphans data")
 	cmd.AddCommand(oDownload())
 	cmd.AddCommand(oAddrs())
 	cmd.AddCommand(oLastUpdated())
