@@ -1,0 +1,21 @@
+Dear @{{.User}},
+
+{{if .Orphaned }}
+You co-maintain the following packages that have been orphaned:
+
+{{range .Orphaned}}
+- {{.}}
+{{end}}
+{{end}}
+
+{{if .Indirect}}
+{{if .Orphaned}}Additionally, y{{else}}Y{{end}}ou co-maintain the following packages that are affected by orphaned packages:
+
+{{range .Indirect}}
+- {{.}}
+{{end}}
+
+Please see the full Orphaned Packages Report for a full dependency chain and to
+determine which orphaned package(s) your package(s) depend on.
+You should have received a copy of the report individually. 
+{{end}}

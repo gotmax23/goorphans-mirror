@@ -14,6 +14,12 @@ import (
 
 const DefaultSentinel = "--DEFAULT--"
 
+var OrphansTo = []string{
+	"devel-announce@lists.fedoraproject.org",
+}
+
+var OrphansReplyTo = "devel@lists.fedoraproject.org"
+
 type Config struct {
 	SMTP    SMTPConfig    `toml:"smtp"    envPrefix:"SMTP_"`
 	FASJSON FASJSONConfig `toml:"fasjson" envPrefix:"FASJSON_"`
@@ -27,8 +33,12 @@ type FASJSONConfig struct {
 }
 
 type OrphansConfig struct {
-	BaseURL  string `toml:"baseurl"  env:"BASEURL"`
-	Download bool   `toml:"download" env:"DOWNLOAD"`
+	BaseURL          string   `toml:"baseurl"            env:"BASEURL"`
+	Download         bool     `toml:"download"           env:"DOWNLOAD"`
+	To               []string `toml:"to"                 env:"TO"`
+	ReplyTo          string   `toml:"reply-to"           env:"REPLY_TO"`
+	BCC              []string `toml:"bcc"                env:"BCC"`
+	DirectMaintsOnly bool     `toml:"direct-maints-only" env:"DIRECT_MAINTS_ONLY"`
 }
 
 func LoadConfig(p string) (*Config, error) {
@@ -66,6 +76,12 @@ func LoadConfig(p string) (*Config, error) {
 	err = env.ParseWithOptions(&config, env.Options{Prefix: "GOORPHANS_"})
 	if err != nil {
 		return nil, err
+	}
+	if config.Orphans.To == nil {
+		config.Orphans.To = OrphansTo
+	}
+	if config.Orphans.ReplyTo == "" {
+		config.Orphans.ReplyTo = OrphansReplyTo
 	}
 	return &config, nil
 }

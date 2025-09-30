@@ -11,10 +11,13 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	gomail "github.com/wneessen/go-mail"
 	"go.gtmx.me/goorphans/actions"
 	"go.gtmx.me/goorphans/common"
 	"go.gtmx.me/goorphans/config"
 	"go.gtmx.me/goorphans/fasjson"
+	"go.gtmx.me/goorphans/mail"
+	"go.gtmx.me/goorphans/notifs"
 )
 
 var orphansArgsKey = &argsKeyType{"orphans"}
@@ -80,6 +83,8 @@ func newOrphansCommand() *cobra.Command {
 	cmd.AddCommand(oAddrs())
 	cmd.AddCommand(oLastUpdated())
 	cmd.AddCommand(oList())
+	cmd.AddCommand(oAnnounce())
+	cmd.AddCommand(oNotifications())
 	return cmd
 }
 
@@ -128,6 +133,7 @@ func oLastUpdated() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "last-updated",
 		Short: "Load the local orphans data and how long it's been since the last update",
+		Args:  NoArgs,
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
 			d, err := args.OrphansData()
@@ -180,11 +186,16 @@ func oList() *cobra.Command {
 	ge := common.GolangExemptionMust
 	weeks := 6
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List orphans",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List orphans",
+		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
 			o, err := args.OrphansData()
+			if args.Config.Download {
+				lastUpdated(o, os.Stderr)
+			}
 			if err != nil {
 				return err
 			}
@@ -205,6 +216,169 @@ func oList() *cobra.Command {
 	cmd.Flags().IntVarP(&weeks, "weeks", "w", weeks, "")
 	cmd.Flags().TextVar(&ge, "golang-exemption", ge, "must (default), optional, or ignore")
 	_ = cmd.RegisterFlagCompletionFunc("golang-exemption", completeGolangExemption)
+	return cmd
+}
+
+// makeAnnounceMsg prepares a [gomail.Msg] struct.
+// Set noRecpts to avoid sending to any recipients and only the BCC value from
+// the config.
+func makeAnnounceMsg(
+	config *config.Config,
+	o *common.Orphans,
+	f *fasjson.EmailCacheClient,
+	noRecpts bool,
+) (*gomail.Msg, error) {
+	affected := o.AllAffectedPeople
+	msg := gomail.NewMsg(gomail.WithNoDefaultUserAgent())
+	msg.Subject("Orphaned packages looking for new maintainers")
+
+	if config.Orphans.DirectMaintsOnly {
+		affected = o.AffectedPeople
+	}
+	emails, err := f.GetIterEmailsMap(maps.Keys(affected))
+	if err != nil {
+		return msg, err
+	}
+	length := len(config.Orphans.BCC)
+	if !noRecpts {
+		length += len(config.Orphans.BCC)
+	}
+	bcc := make([]string, 0, length)
+	bcc = append(bcc, config.Orphans.BCC...)
+
+	if !noRecpts {
+		if err := msg.To(config.Orphans.To...); err != nil {
+			return msg, err
+		}
+		if err := msg.ReplyTo(config.Orphans.ReplyTo); err != nil {
+			return msg, err
+		}
+		for _, email := range emails {
+			bcc = append(bcc, email)
+		}
+	}
+	if err := msg.Bcc(bcc...); err != nil {
+		return msg, err
+	}
+	return msg, nil
+}
+
+func sendMsg(config *config.Config, msg *gomail.Msg) error {
+	err := mail.FinalizeMsg(&config.SMTP, msg)
+	if err != nil {
+		return err
+	}
+	r, _ := msg.GetRecipients()
+	fmt.Printf("Sending %q to %d recipients...\n", msg.GetGenHeader("Subject")[0], len(r))
+	// TODO: Actually send messages.
+	err = msg.WriteToFile("message.eml")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func oAnnounce() *cobra.Command {
+	direct := false
+	cmd := &cobra.Command{
+		Use:   "announce",
+		Short: "Send announcement",
+		Args:  NoArgs,
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
+			if cmd.Flags().Changed("direct-maints") {
+				args.Config.DirectMaintsOnly = direct
+			}
+
+			o, err := args.OrphansData()
+			if err != nil {
+				return err
+			}
+			lastUpdated(o, os.Stderr)
+
+			f, err := args.RootArgs.FASCache()
+			if err != nil {
+				return err
+			}
+
+			msg, err := makeAnnounceMsg(args.RootArgs.Config, o, f, false)
+			if err != nil {
+				return err
+			}
+
+			p := path.Join(args.Dir, common.OrphansTXT)
+			err = mail.MsgSetBodyFromFile(msg, p)
+			if err != nil {
+				return err
+			}
+
+			err = sendMsg(args.RootArgs.Config, msg)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	cmd.Flags().
+		BoolVar(
+			&direct, "direct-maints", direct,
+			"Only send to directly affected maintainers."+
+				" Equivalent to orphans.direct-maints-only in config.",
+		)
+	return cmd
+}
+
+func writeTemplate(outdir string, user string, o *common.Orphans) error {
+	f, err := os.Create(path.Join(outdir, fmt.Sprintf("%s.txt", user)))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	td := notifs.GetUserTemplateData(o, user)
+	err = notifs.UserTemplate.Execute(f, &td)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// WIP
+// See https://lists.fedoraproject.org/archives/list/devel@lists.fedoraproject.org/message/QD3HH77G2TBXAOTMLN2LMN6W453REEGB/
+func oNotifications() *cobra.Command {
+	outdir := "notifs-rendered"
+	cmd := &cobra.Command{
+		Use:     "notifications",
+		Aliases: []string{"notifs"},
+		Short:   "WIP command to send individual notifications",
+		RunE: func(cmd *cobra.Command, a []string) error {
+			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
+			err := os.MkdirAll(outdir, 0o755)
+			if err != nil {
+				return err
+			}
+			o, err := args.OrphansData()
+			if err != nil {
+				return err
+			}
+
+			// TODO: Actually send messages instead of writing to files.
+			// f, err := args.RootArgs.FASCache()
+			// if err != nil {
+			// 	return err
+
+			for user := range o.AllAffectedPeople {
+				if strings.HasPrefix(user, "@") {
+					continue
+				}
+				err = writeTemplate(outdir, user, o)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+	}
 	return cmd
 }
 

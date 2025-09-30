@@ -11,6 +11,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/spf13/cobra v1.10.1
 	github.com/ubccr/kerby v0.0.0-20230802201021-412be7bfaee5
+	github.com/wneessen/go-mail v0.7.1
 )
 
 require (
@@ -18,4 +19,5 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 )

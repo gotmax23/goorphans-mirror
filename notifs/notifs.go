@@ -1,0 +1,34 @@
+// Package notifs sends notifcations to individual maintainers
+package notifs
+
+import (
+	_ "embed"
+	"slices"
+	"text/template"
+
+	mapset "github.com/deckarep/golang-set/v2"
+	"go.gtmx.me/goorphans/common"
+)
+
+//go:embed user.gotmpl
+var userTemplateString string
+
+var UserTemplate = template.Must(template.New("user.gotmpl").Parse(userTemplateString))
+
+type UserTemplateData struct {
+	User     string
+	Orphaned []string
+	Indirect []string
+}
+
+const UserSubjectFmt = "Orphaned packages summary for @%s"
+
+func GetUserTemplateData(o *common.Orphans, user string) *UserTemplateData {
+	direct := o.AffectedPeople[user]
+	slices.Sort(direct)
+	directset := mapset.NewThreadUnsafeSet(direct...)
+	all := o.AllAffectedPeople[user]
+	allset := mapset.NewThreadUnsafeSet(all...)
+	indirect := allset.Difference(directset)
+	return &UserTemplateData{User: user, Orphaned: direct, Indirect: mapset.Sorted(indirect)}
+}
