@@ -68,6 +68,10 @@ func NewRootCmd() *cobra.Command {
 			if !cmd.Root().PersistentFlags().Changed("config") {
 				configPath = config.DefaultSentinel
 			}
+			env, ok := os.LookupEnv("GOORPHANS_CONFIG")
+			if ok {
+				configPath = env
+			}
 			config, err := config.LoadConfig(configPath)
 			if err != nil {
 				return err
