@@ -4,15 +4,18 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"maps"
 	"net/url"
 	"os"
 	"slices"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/actions"
 	"go.gtmx.me/goorphans/common"
+	"go.gtmx.me/goorphans/distgit"
 	"go.gtmx.me/goorphans/pagure"
 )
 
@@ -43,6 +46,7 @@ func NewDistgitCmd() *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&distgit, "distgit", DefaultDistgitURL, "distgit URL")
 	cmd.AddCommand(dgRogue())
+	cmd.AddCommand(dgRogueMaints())
 	cmd.AddCommand(dgProject())
 	cmd.AddCommand(dgMaintEmails())
 	return cmd
@@ -50,8 +54,9 @@ func NewDistgitCmd() *cobra.Command {
 
 func dgRogue() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "rogue",
-		Short: "Get \"rogue\" distgit group members who are not packagers",
+		Use:     "rogue-members",
+		Aliases: []string{"rogue"},
+		Short:   "Get \"rogue\" distgit group members who are not packagers",
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
 			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
@@ -67,6 +72,40 @@ func dgRogue() *cobra.Command {
 			return JSONToStdout(r)
 		},
 	}
+	return cmd
+}
+
+func dgRogueMaints() *cobra.Command {
+	namesOnly := false
+	cmd := &cobra.Command{
+		Use:   "rogue-maints",
+		Short: "Get \"rogue\" package admins who are not packagers",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			// args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			f, err := rargs.FASCache()
+			if err != nil {
+				return err
+			}
+			e := distgit.NewExtrasClient(rargs.HTTPClient)
+			r, err := actions.GetRoguePackageAdmins(f, e)
+			if err != nil {
+				return err
+			}
+			slices.SortFunc(r, func(a, b actions.RoguePackageAdmin) int {
+				return strings.Compare(a.Package, b.Package)
+			})
+			for _, m := range r {
+				if namesOnly {
+					fmt.Println(m.Package)
+				} else {
+					fmt.Printf("%s %s\n", m.Package, m.Admin)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVarP(&namesOnly, "names", "N", namesOnly, "Only print package names")
 	return cmd
 }
 

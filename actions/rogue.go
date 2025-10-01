@@ -8,6 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"go.gtmx.me/goorphans/common"
+	"go.gtmx.me/goorphans/distgit"
 	"go.gtmx.me/goorphans/fasjson"
 	"go.gtmx.me/goorphans/pagure"
 )
@@ -55,4 +56,30 @@ func GetRoguePackagerGroupMembers(
 	}
 	r["total"] = mapset.Sorted(total)
 	return r, nil
+}
+
+type RoguePackageAdmin struct {
+	Package string
+	Admin   string
+}
+
+func GetRoguePackageAdmins(
+	f *fasjson.EmailCacheClient,
+	e *distgit.ExtrasClient,
+) (result []RoguePackageAdmin, err error) {
+	pocs, err := e.GetPagurePOC()
+	if err != nil {
+		return result, err
+	}
+	packagers, err := f.GetMembers("packager")
+	if err != nil {
+		return result, err
+	}
+	packagerset := mapset.NewThreadUnsafeSet(packagers...)
+	for pkg, poc := range pocs.RPMS {
+		if !packagerset.Contains(poc.Admin) {
+			result = append(result, RoguePackageAdmin{pkg, poc.Admin})
+		}
+	}
+	return result, nil
 }
