@@ -4,16 +4,13 @@ package notifs
 import (
 	_ "embed"
 	"slices"
-	"text/template"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"go.gtmx.me/goorphans/common"
+	"go.gtmx.me/goorphans/templates"
 )
 
-//go:embed user.gotmpl
-var userTemplateString string
-
-var UserTemplate = template.Must(template.New("user.gotmpl").Parse(userTemplateString))
+var UserTemplate = templates.Templates.Lookup("notifs_user.gotmpl")
 
 type UserTemplateData struct {
 	User     string
@@ -32,3 +29,9 @@ func GetUserTemplateData(o *common.Orphans, user string) *UserTemplateData {
 	indirect := allset.Difference(directset)
 	return &UserTemplateData{User: user, Orphaned: direct, Indirect: mapset.Sorted(indirect)}
 }
+
+// TODO: pagure.io/fesco/issue/3475
+// var FakeGroupAdminTemplate = templates.Templates.Lookup("notifs_fake-group-user.gotmpl")
+//
+// func GetFakeGroupAdminTemplateData(rogue *actions.RoguePackageAdmin, p *pagure.Client) {
+// }
