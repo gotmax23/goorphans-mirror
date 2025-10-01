@@ -4,7 +4,6 @@ package pagure
 // TODO: The rest of the endpoints as needed
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/url"
 
@@ -41,19 +40,7 @@ func NewClient(url *url.URL, client *http.Client) *Client {
 }
 
 func (c *Client) get(dest any, path *url.URL) error {
-	resp, err := c.Client.Get(path.String())
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if err := common.CheckStatusCode(resp); err != nil {
-		return err
-	}
-	err = json.NewDecoder(resp.Body).Decode(&dest)
-	if err != nil {
-		return err
-	}
-	return nil
+	return common.GetJSON(c.Client, dest, path)
 }
 
 func (c *Client) GetGroups() ([]string, error) {

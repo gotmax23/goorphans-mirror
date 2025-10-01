@@ -1,15 +1,24 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 )
 
 type StatusCodeError struct {
 	StatusCode int
 	URL        string
+}
+
+func Must[T any](val T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 func (e *StatusCodeError) Error() string {
@@ -24,6 +33,22 @@ func (e *StatusCodeError) Error() string {
 func CheckStatusCode(resp *http.Response) error {
 	if resp.StatusCode >= 400 {
 		return &StatusCodeError{resp.StatusCode, resp.Request.URL.String()}
+	}
+	return nil
+}
+
+func GetJSON(client *http.Client, dest any, path *url.URL) error {
+	resp, err := client.Get(path.String())
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if err := CheckStatusCode(resp); err != nil {
+		return err
+	}
+	err = json.NewDecoder(resp.Body).Decode(&dest)
+	if err != nil {
+		return err
 	}
 	return nil
 }
