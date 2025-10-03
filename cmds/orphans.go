@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	gomail "github.com/wneessen/go-mail"
 	"go.gtmx.me/goorphans/actions"
@@ -112,7 +113,17 @@ func lastUpdated(d *common.Orphans, file *os.File) *time.Duration {
 	if d.FinishedAt != nil {
 		elapsed := time.Since(*d.FinishedAt)
 		// This data is supposed to be updated once an hour, so just print minutes.
-		_, err := fmt.Fprintf(file, "Data was refreshed %.0f minutes ago\n", elapsed.Minutes())
+		minutes := elapsed.Minutes()
+		clr := color.New()
+		switch {
+		case minutes >= 60:
+			clr.Add(color.FgRed)
+		case minutes <= 5:
+			clr.Add(color.FgGreen)
+		default:
+			clr.Add(color.FgBlue)
+		}
+		_, err := clr.Fprintf(file, "Data was refreshed %.0f minutes ago\n", elapsed.Minutes())
 		if err != nil {
 			panic(err)
 		}
@@ -208,7 +219,12 @@ func oList() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return common.WriteFileLines(out, r)
+			err = common.WriteFileLines(out, r)
+			if err != nil {
+				return err
+			}
+			colorToStderrF(color.FgMagenta, "    %d orphans listed\n", len(r))
+			return nil
 		},
 	}
 	cmd.Flags().
@@ -270,12 +286,14 @@ func sendMsg(config *config.Config, msg *gomail.Msg) error {
 	}
 	r, _ := msg.GetRecipients()
 	fmt.Printf("Sending %q to %d recipients...\n", msg.GetGenHeader("Subject")[0], len(r))
-	// TODO: Actually send messages.
 	err = msg.WriteToFile("message.eml")
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
+	// TODO: Actually send messages.
+	// c, err := mail.NewClient(&config.SMTP)
+	// if err != nil {
+	// 	return err
+	// }
+	// return c.DialAndSend(msg)
 }
 
 func oAnnounce() *cobra.Command {
@@ -367,7 +385,7 @@ func oNotifications() *cobra.Command {
 			// 	return err
 
 			for user := range o.AllAffectedPeople {
-				if strings.HasPrefix(user, "@") {
+				if user[0] == '@' {
 					continue
 				}
 				err = writeTemplate(outdir, user, o)
