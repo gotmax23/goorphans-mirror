@@ -196,6 +196,8 @@ func oList() *cobra.Command {
 	var out string
 	ge := common.GolangExemptionMust
 	weeks := 6
+	count := false
+
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -219,11 +221,15 @@ func oList() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = common.WriteFileLines(out, r)
-			if err != nil {
-				return err
+			if count {
+				fmt.Println(len(r))
+			} else {
+				err = common.WriteFileLines(out, r)
+				if err != nil {
+					return err
+				}
+				colorToStderrF(color.FgMagenta, "    %d orphans listed\n", len(r))
 			}
-			colorToStderrF(color.FgMagenta, "    %d orphans listed\n", len(r))
 			return nil
 		},
 	}
@@ -233,6 +239,7 @@ func oList() *cobra.Command {
 	cmd.Flags().TextVar(&ge, "golang-exemption", ge,
 		"must (default), optional, ignore, or only",
 	)
+	cmd.Flags().BoolVar(&count, "count", count, "Only print a count")
 	_ = cmd.RegisterFlagCompletionFunc("golang-exemption", completeGolangExemption)
 	return cmd
 }
