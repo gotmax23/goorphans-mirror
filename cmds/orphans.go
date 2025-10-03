@@ -230,7 +230,9 @@ func oList() *cobra.Command {
 	cmd.Flags().
 		StringVarP(&out, "output", "o", "-", "Output file; defaults to stdout")
 	cmd.Flags().IntVarP(&weeks, "weeks", "w", weeks, "")
-	cmd.Flags().TextVar(&ge, "golang-exemption", ge, "must (default), optional, or ignore")
+	cmd.Flags().TextVar(&ge, "golang-exemption", ge,
+		"must (default), optional, ignore, or only",
+	)
 	_ = cmd.RegisterFlagCompletionFunc("golang-exemption", completeGolangExemption)
 	return cmd
 }

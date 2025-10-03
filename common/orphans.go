@@ -23,18 +23,21 @@ const (
 	GolangExemptionMust GolangExemption = iota
 	GolangExemptionOptional
 	GolangExemptionIgnore
+	GolangExemptionOnly
 )
 
 var ToGolangExemption = map[string]GolangExemption{
 	"must":     GolangExemptionMust,
 	"optional": GolangExemptionOptional,
 	"ignore":   GolangExemptionIgnore,
+	"only":     GolangExemptionOnly,
 }
 
 var FromGolangExemption = map[GolangExemption]string{
 	GolangExemptionMust:     "must",
 	GolangExemptionOptional: "optional",
 	GolangExemptionIgnore:   "ignore",
+	GolangExemptionOnly:     "only",
 }
 
 func (ge GolangExemption) String() string {
@@ -111,7 +114,12 @@ func (o *Orphans) OrphanedFilter(options OrphanedFilterOptions) (r []string, err
 				continue
 			}
 		}
-		if options.GolangExemption != GolangExemptionIgnore && exemptions.Contains(p) {
+		if exemptions.Contains(p) {
+			if options.GolangExemption == GolangExemptionMust ||
+				options.GolangExemption == GolangExemptionOptional {
+				continue
+			}
+		} else if options.GolangExemption == GolangExemptionOnly {
 			continue
 		}
 		r = append(r, p)
