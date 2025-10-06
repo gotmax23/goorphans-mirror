@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 	"go.gtmx.me/goorphans/config"
@@ -120,7 +121,7 @@ func newDumpConfigCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
 			if err := rargs.Config.SMTP.Validate(); err != nil {
-				return err
+				colorToStderrForce(color.FgRed, "%v\n", err)
 			}
 			if rargs.Config.SMTP.Password != "" {
 				rargs.Config.SMTP.Password = "REDACTED"
