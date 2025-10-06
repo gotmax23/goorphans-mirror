@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +26,9 @@ func NewClient(config *config.SMTPConfig, opts ...gomail.Option) (*gomail.Client
 	}
 	if config.Secure == "tls" {
 		options = append(options, gomail.WithSSL())
+	}
+	if config.InsecureSkipVerify {
+		options = append(options, gomail.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}))
 	}
 	c, err := gomail.NewClient(config.Host, options...)
 	return c, err

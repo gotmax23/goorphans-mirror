@@ -45,6 +45,9 @@ from = ''
 # Env: GOORPHANS_SMTP_SECURE
 # "tls" or "starttls" (determined based on port by default)
 secure = ''
+# Env: GOORPHANS_SMTP_INSECURE_SKIP_VERIFY
+# Don't validate SMTP server TLS certificates.
+insecure_skip_verify = false
 
 [fasjson]
 # Env: GOORPHANS_FASJSON_TTL

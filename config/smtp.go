@@ -26,6 +26,8 @@ type SMTPConfig struct {
 	PasswordCmd any    `toml:"password_cmd" env:"PASWORD_CMD"`
 	From        string `toml:"from"         env:"FROM"`
 	Secure      string `toml:"secure"       env:"SECURE"`
+	// Skip TLS verification
+	InsecureSkipVerify bool `toml:"insecure_skip_verify" env:"INSECURE_SKIP_VERIFY"`
 }
 
 // Validate is overcomplicated code to parse SMTPConfig and handle unset
