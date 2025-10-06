@@ -38,7 +38,8 @@ password = ''
 # Env: GOORPHANS_SMTP_PASSWORD_CMD
 # password-cmd can be either a string or []string of arguments.
 # The first line of the command output is used as the password
-password-cmd = [""]
+# password-cmd = "echo password"
+password-cmd = ["echo", "password"]
 # Env: GOORPHANS_SMTP_FROM
 # From: header
 from = ''
