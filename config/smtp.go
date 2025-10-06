@@ -19,13 +19,13 @@ const (
 )
 
 type SMTPConfig struct {
-	Host        string `toml:"host"         env:"HOST"`
-	Port        int    `toml:"port"         env:"PORT"`
-	Username    string `toml:"username"     env:"USERNAME"`
-	Password    string `toml:"password"     env:"PASSWORD,unset"`
-	PasswordCmd any    `toml:"password_cmd" env:"PASWORD_CMD"`
-	From        string `toml:"from"         env:"FROM"`
-	Secure      string `toml:"secure"       env:"SECURE"`
+	Host        string `toml:"host"                 env:"HOST"`
+	Port        int    `toml:"port"                 env:"PORT"`
+	Username    string `toml:"username"             env:"USERNAME"`
+	Password    string `toml:"password"             env:"PASSWORD,unset"`
+	PasswordCmd any    `toml:"password_cmd"         env:"PASWORD_CMD"`
+	From        string `toml:"from"                 env:"FROM"`
+	Secure      string `toml:"secure"               env:"SECURE"`
 	// Skip TLS verification
 	InsecureSkipVerify bool `toml:"insecure_skip_verify" env:"INSECURE_SKIP_VERIFY"`
 }
