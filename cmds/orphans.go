@@ -251,7 +251,7 @@ func makeAnnounceMsg(
 	config *config.Config,
 	o *common.Orphans,
 	f *fasjson.EmailCacheClient,
-	noRecpts bool,
+	forceTo []string,
 ) (*gomail.Msg, error) {
 	affected := o.AllAffectedPeople
 	msg := gomail.NewMsg(gomail.WithNoDefaultUserAgent())
@@ -264,26 +264,25 @@ func makeAnnounceMsg(
 	if err != nil {
 		return msg, err
 	}
-	length := len(config.Orphans.BCC)
-	if !noRecpts {
-		length += len(config.Orphans.BCC)
-	}
-	bcc := make([]string, 0, length)
-	bcc = append(bcc, config.Orphans.BCC...)
-
-	if !noRecpts {
+	if forceTo == nil {
 		if err := msg.To(config.Orphans.To...); err != nil {
 			return msg, err
 		}
 		if err := msg.ReplyTo(config.Orphans.ReplyTo); err != nil {
 			return msg, err
 		}
+		bcc := make([]string, 0, len(config.Orphans.BCC)+len(config.Orphans.BCC))
+		bcc = append(bcc, config.Orphans.BCC...)
 		for _, email := range emails {
 			bcc = append(bcc, email)
 		}
-	}
-	if err := msg.Bcc(bcc...); err != nil {
-		return msg, err
+		if err := msg.Bcc(bcc...); err != nil {
+			return msg, err
+		}
+	} else {
+		if err := msg.To(forceTo...); err != nil {
+			return msg, err
+		}
 	}
 	return msg, nil
 }
@@ -295,18 +294,18 @@ func sendMsg(config *config.Config, msg *gomail.Msg) error {
 	}
 	r, _ := msg.GetRecipients()
 	fmt.Printf("Sending %q to %d recipients...\n", msg.GetGenHeader("Subject")[0], len(r))
-	err = msg.WriteToFile("message.eml")
-	return err
-	// TODO: Actually send messages.
-	// c, err := mail.NewClient(&config.SMTP)
-	// if err != nil {
-	// 	return err
-	// }
-	// return c.DialAndSend(msg)
+	// err = msg.WriteToFile("message.eml")
+	// return err
+	c, err := mail.NewClient(&config.SMTP)
+	if err != nil {
+		return err
+	}
+	return c.DialAndSend(msg)
 }
 
 func oAnnounce() *cobra.Command {
 	direct := false
+	var forceTo []string
 	cmd := &cobra.Command{
 		Use:   "announce",
 		Short: "Send announcement",
@@ -330,8 +329,7 @@ func oAnnounce() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			msg, err := makeAnnounceMsg(args.RootArgs.Config, o, f, false)
+			msg, err := makeAnnounceMsg(args.RootArgs.Config, o, f, forceTo)
 			if err != nil {
 				return err
 			}
@@ -354,6 +352,11 @@ func oAnnounce() *cobra.Command {
 			&direct, "direct-maints", direct,
 			"Only send to directly affected maintainers."+
 				" Equivalent to orphans.direct-maints-only in config.",
+		)
+	cmd.Flags().
+		StringSliceVar(
+			&forceTo, "force-to", nil,
+			"Only send message to address and don't BCC maintainers",
 		)
 	return cmd
 }
