@@ -47,7 +47,7 @@ from = ''
 secure = ''
 # Env: GOORPHANS_SMTP_INSECURE_SKIP_VERIFY
 # Don't validate SMTP server TLS certificates.
-insecure_skip_verify = false
+insecure-skip-verify = false
 
 [fasjson]
 # Env: GOORPHANS_FASJSON_TTL
@@ -75,4 +75,4 @@ reply-to = 'devel@lists.fedoraproject.org'
 bcc = []
 # Env: GOORPHANS_ORPHANS_DIRECT_MAINTS_ONLY
 direct-maints-only = false
-``
+```
