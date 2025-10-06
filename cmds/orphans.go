@@ -206,7 +206,7 @@ func oList() *cobra.Command {
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
 			o, err := args.OrphansData()
-			if args.Config.Download {
+			if args.Config.Download && !color.NoColor {
 				lastUpdated(o, os.Stderr)
 			}
 			if err != nil {
