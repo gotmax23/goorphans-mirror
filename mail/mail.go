@@ -2,7 +2,6 @@ package mail
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -46,18 +45,19 @@ func getMsgID(from string) (string, error) {
 }
 
 func FinalizeMsg(config *config.SMTPConfig, msg *gomail.Msg) error {
-	var allerr error
-	adderr := func(e error) {
-		allerr = errors.Join(allerr, e)
+	err := msg.From(config.From)
+	if err != nil {
+		return err
 	}
-	adderr(msg.From(config.From))
+	// Get the parsed From value
+	from := msg.GetFrom()
+	msgid, err := getMsgID(from[0].Address)
+	if err != nil {
+		return err
+	}
+	msg.SetMessageIDWithValue(msgid)
 	msg.SetDateWithValue(time.Now().UTC())
-	msgid, err := getMsgID(config.From)
-	adderr(err)
-	if err == nil {
-		msg.SetMessageIDWithValue(msgid)
-	}
-	return allerr
+	return nil
 }
 
 func MsgSetBodyFromFile(msg *gomail.Msg, name string) error {
