@@ -313,6 +313,9 @@ func oAnnounce() *cobra.Command {
 		Args:  NoArgs,
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
+			if err := args.RootArgs.Config.SMTP.Validate(); err != nil {
+				return err
+			}
 			if cmd.Flags().Changed("direct-maints") {
 				args.Config.DirectMaintsOnly = direct
 			}

@@ -119,6 +119,12 @@ func newDumpConfigCmd() *cobra.Command {
 		Short: "Dump configuration as TOML",
 		RunE: func(cmd *cobra.Command, argv []string) error {
 			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			if err := rargs.Config.SMTP.Validate(); err != nil {
+				return err
+			}
+			if rargs.Config.SMTP.Password != "" {
+				rargs.Config.SMTP.Password = "REDACTED"
+			}
 			b, err := toml.Marshal(rargs.Config)
 			if err != nil {
 				return err
