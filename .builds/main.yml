@@ -8,7 +8,13 @@ packages:
   - golang
   - golangci-lint
   - krb5-devel
+environment:
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
 tasks:
+  - tidy: |
+      cd goorphans
+      go mod tidy -diff
   - build: |
       cd goorphans
       go build .
