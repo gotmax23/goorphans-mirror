@@ -295,7 +295,10 @@ func sendMsg(config *config.Config, msg *gomail.Msg) error {
 	r, _ := msg.GetRecipients()
 	fmt.Printf("Sending %q to %d recipients...\n", msg.GetGenHeader("Subject")[0], len(r))
 	// err = msg.WriteToFile("message.eml")
-	// return err
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
 	c, err := mail.NewClient(&config.SMTP)
 	if err != nil {
 		return err
