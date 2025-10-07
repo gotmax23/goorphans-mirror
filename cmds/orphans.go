@@ -271,7 +271,7 @@ func makeAnnounceMsg(
 		if err := msg.ReplyTo(config.Orphans.ReplyTo); err != nil {
 			return msg, err
 		}
-		bcc := make([]string, 0, len(config.Orphans.BCC)+len(config.Orphans.BCC))
+		bcc := make([]string, 0, len(config.Orphans.BCC)+len(emails))
 		bcc = append(bcc, config.Orphans.BCC...)
 		for _, email := range emails {
 			bcc = append(bcc, email)
