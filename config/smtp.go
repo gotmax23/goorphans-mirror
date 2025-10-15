@@ -28,6 +28,8 @@ type SMTPConfig struct {
 	Secure      string `toml:"secure"               env:"SECURE"`
 	// Skip TLS verification
 	InsecureSkipVerify bool `toml:"insecure-skip-verify" env:"INSECURE_SKIP_VERIFY"`
+	// Write messages to a directory instead of sending them
+	OutgoingDir string `toml:"outgoing-dir"         env:"OUTGOING_DIR"`
 }
 
 // Validate is overcomplicated code to parse SMTPConfig and handle unset
@@ -41,62 +43,67 @@ func (s *SMTPConfig) Validate() error {
 		adderr(fmt.Errorf(format, a...))
 	}
 
-	if s.Password == "" && s.PasswordCmd != nil {
-		cmd, err := parseCmd(s.PasswordCmd, "smtp.password_cmd")
-		if err == nil {
-			pw, err := ExecFirstLine(cmd)
-			if err != nil {
-				adderrf("failed to run smtp.password-cmd: %v", err)
+	if s.OutgoingDir != "" {
+		s.Host = ""
+		adderr(os.MkdirAll(s.OutgoingDir, 0o755))
+	} else {
+		if s.Password == "" && s.PasswordCmd != nil {
+			cmd, err := parseCmd(s.PasswordCmd, "smtp.password_cmd")
+			if err == nil {
+				pw, err := ExecFirstLine(cmd)
+				if err != nil {
+					adderrf("failed to run smtp.password-cmd: %v", err)
+				}
+				s.Password = pw
+			} else {
+				adderr(err)
 			}
-			s.Password = pw
-		} else {
-			adderr(err)
 		}
-	}
 
-	switch s.Secure {
-	case "":
-		if s.Port == portStartTLS || s.Port == portFallback {
-			s.Secure = "starttls"
-		} else {
-			// If no port is specified, default to implicit TLS.
-			// https://nostarttls.secvuln.info/
-			s.Secure = "tls"
+		switch s.Secure {
+		case "":
+			if s.Port == portStartTLS || s.Port == portFallback {
+				s.Secure = "starttls"
+			} else {
+				// If no port is specified, default to implicit TLS.
+				// https://nostarttls.secvuln.info/
+				s.Secure = "tls"
+				if s.Port == 0 {
+					s.Port = portTLS
+				}
+			}
+		case "tls":
 			if s.Port == 0 {
 				s.Port = portTLS
 			}
+		case "starttls":
+			if s.Port == 0 {
+				s.Port = portStartTLS
+			}
+		default:
+			adderrf("invalid s.secure value %q: must be %q or %q", s.Secure, "tls", "starttls")
 		}
-	case "tls":
-		if s.Port == 0 {
-			s.Port = portTLS
+		var missing []string
+		values := map[string]*string{
+			"smtp.host":     &s.Host,
+			"smtp.username": &s.Username,
+			"smtp.password": &s.Password,
+			"smtp.from":     &s.From,
 		}
-	case "starttls":
-		if s.Port == 0 {
-			s.Port = portStartTLS
+		for key, value := range values {
+			if *value == "" {
+				missing = append(missing, key)
+			}
 		}
-	default:
-		adderrf("invalid s.secure value %q: must be %q or %q", s.Secure, "tls", "starttls")
+		if len(missing) > 0 {
+			adderrf(
+				"missing required configuration keys: %s",
+				strings.Join(missing, "; "),
+			)
+		}
 
 	}
 
-	var missing []string
-	values := map[string]*string{
-		"smtp.host":     &s.Host,
-		"smtp.username": &s.Username,
-		"smtp.password": &s.Password,
-		"smtp.from":     &s.From,
-	}
-	for key, value := range values {
-		if *value == "" {
-			missing = append(missing, key)
-		}
-	}
-	if len(missing) > 0 {
-		adderrf(
-			"missing required configuration keys: %s",
-			strings.Join(missing, "; "),
-		)
-	}
 	return allerr
 }
 
