@@ -300,6 +300,7 @@ func sendMsg(config *config.Config, msgs ...*gomail.Msg) error {
 		if err != nil {
 			return err
 		}
+		defer c.CloseWithSMTPClient(sclient)
 	}
 	for i, msg := range msgs {
 		err := mail.FinalizeMsg(&config.SMTP, msg)
