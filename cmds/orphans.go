@@ -291,8 +291,9 @@ func makeAnnounceMsg(
 func sendMsg(config *config.Config, msgs ...*gomail.Msg) error {
 	var c *gomail.Client
 	var sclient *smtp.Client
+	var err error
 	if config.SMTP.OutgoingDir == "" {
-		c, err := mail.NewClient(&config.SMTP)
+		c, err = mail.NewClient(&config.SMTP)
 		if err != nil {
 			return err
 		}
