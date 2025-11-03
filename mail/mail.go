@@ -22,6 +22,7 @@ func NewClient(config *config.SMTPConfig, opts ...gomail.Option) (*gomail.Client
 		gomail.WithUsername(config.Username),
 		gomail.WithPassword(config.Password),
 		gomail.WithPort(config.Port),
+		gomail.WithTimeout(time.Minute),
 	}
 	if config.Secure == "tls" {
 		options = append(options, gomail.WithSSL())
