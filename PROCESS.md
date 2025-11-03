@@ -20,9 +20,17 @@ directory as the `unblocked_orphans.sh` wrapper script to configure monitoring.
 
 Orphaned packages that have not been picked up after six weeks are retired
 using [retire.py] in the releng scripts repository.
-The script clones each repository and run
+The script clones each repository and runs `fedpkg retire`.
 I try to run this script at least once a week.
-After I run this script, I manually run `systemctl start --user
+
+```bash
+goorphans o list -r | tee toretire
+./retire.py --list toretire retire --lf retired
+```
+
+After I run this script, I sync the `retired` file to
+<https://a.gtmx.me/orphans/retired>.
+Then, I usually manually run `systemctl start --user
 find_unblocked_orphans.service` to refresh the data
 and wait for the refresh to complete before moving on to the next step.
 
@@ -34,6 +42,10 @@ Every individual maintainer or member of a packaging SIG that maintains any
 affected package is BCCed on the email.
 goorphans queries FASJSON for users' (both direct maintaienrs and group
 members) email addresses.
+
+```bash
+goorphans o announce
+```
 
 
 [find_unblocked_orphans.py]: https://pagure.io/releng/blob/main/f/scripts_new/packages/orphaned/find_unblocked_orphans.py
