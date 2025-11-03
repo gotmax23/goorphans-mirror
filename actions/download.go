@@ -16,7 +16,10 @@ func Download(httpclient *http.Client, baseurl, dir string) error {
 }
 
 // DownloadWithOrphans downloads data and return pared Orphans data
-func DownloadWithOrphans(httpclient *http.Client, baseurl, dir string) (*common.Orphans, error) {
+func DownloadWithOrphans(
+	httpclient *http.Client,
+	baseurl, dir string,
+) (*common.Orphans, error) {
 	var orphans *common.Orphans = nil
 	err := os.MkdirAll(dir, 0o755)
 	if err != nil {

@@ -229,7 +229,9 @@ func (cache *EmailCacheClient) GetMemberEmailsMap(
 // GetIterEmailsMap returns a map of username -> emails.
 // Names that start with "@" are treated as group names.
 // [common.OrphanUID] is always excluded, even if it's included in names.
-func (cache *EmailCacheClient) GetIterEmailsMap(names iter.Seq[string]) (map[string]string, error) {
+func (cache *EmailCacheClient) GetIterEmailsMap(
+	names iter.Seq[string],
+) (map[string]string, error) {
 	// Use a custom set type. We can have users repeated in names and the same
 	// user present in mutliple groups.
 	usernames := mapset.NewThreadUnsafeSet[string]()
@@ -250,6 +252,8 @@ func (cache *EmailCacheClient) GetIterEmailsMap(names iter.Seq[string]) (map[str
 }
 
 // GetAllEmailsMap is a wrapper around GetIterEmailsMap that accepts a slice.
-func (cache *EmailCacheClient) GetAllEmailsMap(names []string) (map[string]string, error) {
+func (cache *EmailCacheClient) GetAllEmailsMap(
+	names []string,
+) (map[string]string, error) {
 	return cache.GetIterEmailsMap(slices.Values(names))
 }

@@ -7,7 +7,7 @@ enable = [
     "golines",
 ]
 [formatters.settings.golines]
-max-len = 100
+max-len = 90
 tab-len = 4
 
 [linters]

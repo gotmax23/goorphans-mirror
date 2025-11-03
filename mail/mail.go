@@ -27,7 +27,10 @@ func NewClient(config *config.SMTPConfig, opts ...gomail.Option) (*gomail.Client
 		options = append(options, gomail.WithSSL())
 	}
 	if config.InsecureSkipVerify {
-		options = append(options, gomail.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}))
+		options = append(
+			options,
+			gomail.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),
+		)
 	}
 	c, err := gomail.NewClient(config.Host, options...)
 	return c, err

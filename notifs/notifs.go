@@ -27,7 +27,11 @@ func GetUserTemplateData(o *common.Orphans, user string) *UserTemplateData {
 	all := o.AllAffectedPeople[user]
 	allset := mapset.NewThreadUnsafeSet(all...)
 	indirect := allset.Difference(directset)
-	return &UserTemplateData{User: user, Orphaned: direct, Indirect: mapset.Sorted(indirect)}
+	return &UserTemplateData{
+		User:     user,
+		Orphaned: direct,
+		Indirect: mapset.Sorted(indirect),
+	}
 }
 
 // TODO: pagure.io/fesco/issue/3475

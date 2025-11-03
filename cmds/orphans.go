@@ -124,7 +124,11 @@ func lastUpdated(d *common.Orphans, file *os.File) *time.Duration {
 		default:
 			clr.Add(color.FgBlue)
 		}
-		_, err := clr.Fprintf(file, "Data was refreshed %.0f minutes ago\n", elapsed.Minutes())
+		_, err := clr.Fprintf(
+			file,
+			"Data was refreshed %.0f minutes ago\n",
+			elapsed.Minutes(),
+		)
 		if err != nil {
 			panic(err)
 		}
