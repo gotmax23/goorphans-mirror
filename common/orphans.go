@@ -17,11 +17,14 @@ const (
 )
 const week time.Duration = time.Hour * 24 * 7
 
+var FlagDate = time.Date(2025, time.November, 3, 0, 0, 0, 0, time.UTC)
+
 type GolangExemption int
 
 const (
 	GolangExemptionMust GolangExemption = iota
 	GolangExemptionOptional
+	GolangExemptionFlagDate
 	GolangExemptionIgnore
 	GolangExemptionOnly
 )
@@ -29,6 +32,7 @@ const (
 var ToGolangExemption = map[string]GolangExemption{
 	"must":     GolangExemptionMust,
 	"optional": GolangExemptionOptional,
+	"flagdate": GolangExemptionFlagDate,
 	"ignore":   GolangExemptionIgnore,
 	"only":     GolangExemptionOnly,
 }
@@ -36,6 +40,7 @@ var ToGolangExemption = map[string]GolangExemption{
 var FromGolangExemption = map[GolangExemption]string{
 	GolangExemptionMust:     "must",
 	GolangExemptionOptional: "optional",
+	GolangExemptionFlagDate: "flagdate",
 	GolangExemptionIgnore:   "ignore",
 	GolangExemptionOnly:     "only",
 }
@@ -102,19 +107,25 @@ type OrphanedFilterOptions struct {
 }
 
 func (o *Orphans) OrphanedFilter(options OrphanedFilterOptions) (r []string, err error) {
+	now := time.Now().UTC()
 	if options.GolangExemption == GolangExemptionMust && len(o.GolangExemptions) == 0 {
 		return r, fmt.Errorf("GolangExemptionMust but no exemptions were listed")
 	}
 	exemptions := mapset.NewThreadUnsafeSet(o.GolangExemptions...)
 	for _, p := range o.Orphans {
+		exemptionContains := exemptions.Contains(p)
 		if options.Duration != 0 {
 			t := o.StatusChange[p]
-			elapsed := time.Since(t)
+			if options.GolangExemption == GolangExemptionFlagDate && exemptionContains &&
+				t.Before(FlagDate) {
+				t = FlagDate
+			}
+			elapsed := now.Sub(t)
 			if elapsed < options.Duration {
 				continue
 			}
 		}
-		if exemptions.Contains(p) {
+		if exemptionContains {
 			if options.GolangExemption == GolangExemptionMust ||
 				options.GolangExemption == GolangExemptionOptional {
 				continue

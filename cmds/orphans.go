@@ -199,7 +199,7 @@ var completeGolangExemption = cobra.FixedCompletions(
 
 func oList() *cobra.Command {
 	var out string
-	ge := common.GolangExemptionMust
+	ge := common.GolangExemptionFlagDate
 	weeks := 6
 	count := false
 
@@ -242,7 +242,7 @@ func oList() *cobra.Command {
 		StringVarP(&out, "output", "o", "-", "Output file; defaults to stdout")
 	cmd.Flags().IntVarP(&weeks, "weeks", "w", weeks, "")
 	cmd.Flags().TextVar(&ge, "golang-exemption", ge,
-		"must (default), optional, ignore, or only",
+		"flagdate (default), must, optional, ignore, or only",
 	)
 	cmd.Flags().BoolVar(&count, "count", count, "Only print a count")
 	_ = cmd.RegisterFlagCompletionFunc("golang-exemption", completeGolangExemption)
