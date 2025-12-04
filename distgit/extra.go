@@ -103,8 +103,7 @@ func (c *ExtrasClient) GetRetiredIn(release string) ([]string, error) {
 }
 
 // IsRetired ...
-// TODO: Use Koji API or some other way to check this that doesn't require
-// abusing Packit's UA.
+// TODO: Use Koji API or some other way to check this that doesn't hit Pagure
 // * the https://src.fedoraproject.org/lookaside/.retired_in_BRANCH.json files were incomplete.
 // * using the Koji API is more complicated
 func (c *ExtrasClient) IsRetired(name string, branch string) (bool, error) {
@@ -112,11 +111,8 @@ func (c *ExtrasClient) IsRetired(name string, branch string) (bool, error) {
 	// e.g., https://src.fedoraproject.org/rpms/python38-toml-epel/raw/rawhide/f/dead.package
 	u := c.BaseURL.JoinPath("rpms", name, "raw", branch, "f/dead.package").String()
 	req, _ := http.NewRequest(http.MethodGet, u, nil)
-	req.Header.Set(
-		"User-Agent",
-		// :frowning_face:
-		"packit.dev/packit (actually go.gtmx.me/goorphans but using packit UA passes anubis)",
-	)
+	req.Header.Set("User-Agent", "go.gtmx.me/goorphans")
+	req.Header.Set("Accept", "text/plain")
 	log.Printf("GET %s", u)
 	resp, err := c.Client.Do(req)
 	if err != nil {
