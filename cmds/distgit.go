@@ -145,7 +145,7 @@ func dgRogueOrphans() *cobra.Command {
 				if namesOnly {
 					fmt.Println(name)
 				} else {
-					fmt.Printf("%s admin=%s fedora=%s\n", name, pocs.Admin, pocs.Fedora)
+					fmt.Printf("%s admin=%s fedora=%s epel=%s\n", name, pocs.Admin, pocs.Fedora, pocs.EPEL)
 				}
 			}
 			return nil
