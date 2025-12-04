@@ -1,7 +1,9 @@
 package distgit
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -88,4 +90,45 @@ type ExtrasPagurePOCTypes struct {
 func (c *ExtrasClient) GetPagurePOC() (*ExtrasPagurePOC, error) {
 	var d ExtrasPagurePOC
 	return &d, c.get(&d, "pagure_poc")
+}
+
+func (c *ExtrasClient) GetRetiredIn(release string) ([]string, error) {
+	u := c.BaseURL.JoinPath("lookaside", fmt.Sprintf("retired_in_%s.json", release))
+	d := map[string][]string{}
+	err := common.GetJSON(c.Client, d, u)
+	if err != nil {
+		return nil, err
+	}
+	return d[release], nil
+}
+
+// IsRetired ...
+// TODO: Use Koji API or some other way to check this that doesn't require
+// abusing Packit's UA.
+// * the https://src.fedoraproject.org/lookaside/.retired_in_BRANCH.json files were incomplete.
+// * using the Koji API is more complicated
+func (c *ExtrasClient) IsRetired(name string, branch string) (bool, error) {
+	baseerr := fmt.Errorf("failed to check if package %s is retired on %s", name, branch)
+	// e.g., https://src.fedoraproject.org/rpms/python38-toml-epel/raw/rawhide/f/dead.package
+	u := c.BaseURL.JoinPath("rpms", name, "raw", branch, "f/dead.package").String()
+	req, _ := http.NewRequest(http.MethodGet, u, nil)
+	req.Header.Set(
+		"User-Agent",
+		// :frowning_face:
+		"packit.dev/packit (actually go.gtmx.me/goorphans but using packit UA passes anubis)",
+	)
+	log.Printf("GET %s", u)
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return false, errors.Join(baseerr, err)
+	}
+	defer resp.Body.Close()
+	switch c := resp.StatusCode; c {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, errors.Join(baseerr, common.CheckStatusCode(resp))
+	}
 }

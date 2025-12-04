@@ -47,6 +47,7 @@ func NewDistgitCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&distgit, "distgit", DefaultDistgitURL, "distgit URL")
 	cmd.AddCommand(dgRogue())
 	cmd.AddCommand(dgRogueMaints())
+	cmd.AddCommand(dgRogueOrphans())
 	cmd.AddCommand(dgProject())
 	cmd.AddCommand(dgMaintEmails())
 	return cmd
@@ -106,6 +107,52 @@ func dgRogueMaints() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVarP(&namesOnly, "names", "N", namesOnly, "Only print package names")
+	return cmd
+}
+
+func dgRogueOrphans() *cobra.Command {
+	namesOnly := false
+	cmd := &cobra.Command{
+		Use:   "rogue-orphans",
+		Short: "Get packagers that have real admins and orphan assignees",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			// args := cmd.Context().Value(distgitArgsKey).(*DistgitArgs)
+			rargs := cmd.Context().Value(rootArgsKey).(*RootArgs)
+			e := distgit.NewExtrasClient(rargs.HTTPClient)
+			poc, err := e.GetPagurePOC()
+			if err != nil {
+				return err
+			}
+			r := map[string]distgit.ExtrasPagurePOCTypes{}
+			for name, pocs := range poc.RPMS {
+				if pocs.Admin != common.OrphanUID && pocs.Fedora == common.OrphanUID {
+					isretired, err := e.IsRetired(name, "rawhide")
+					if err != nil {
+						return fmt.Errorf(
+							"failed to check if %s is retired: %w",
+							name,
+							err,
+						)
+					}
+					if !isretired {
+						r[name] = pocs
+					}
+				}
+			}
+			names := slices.Sorted(maps.Keys(r))
+			for _, name := range names {
+				pocs := r[name]
+				if namesOnly {
+					fmt.Println(name)
+				} else {
+					fmt.Printf("%s admin=%s fedora=%s\n", name, pocs.Admin, pocs.Fedora)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVarP(&namesOnly, "names", "N", namesOnly, "Only print package names")
+	// cmd.Flags().BoolVarP()
 	return cmd
 }
 

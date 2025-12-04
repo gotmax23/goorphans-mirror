@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 )
@@ -37,8 +39,19 @@ func CheckStatusCode(resp *http.Response) error {
 	return nil
 }
 
+func Ptr[T any](val T) *T {
+	return &val
+}
+
 func GetJSON(client *http.Client, dest any, path *url.URL) error {
-	resp, err := client.Get(path.String())
+	log.Printf("GET %s", path)
+	req, err := http.NewRequest(http.MethodGet, path.String(), nil)
+	if err != nil {
+		return fmt.Errorf("failed to set up request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "go.gtmx.me/goorphans")
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -48,7 +61,9 @@ func GetJSON(client *http.Client, dest any, path *url.URL) error {
 	}
 	err = json.NewDecoder(resp.Body).Decode(&dest)
 	if err != nil {
-		return err
+		bb, err := httputil.DumpResponse(resp, true)
+		fmt.Println(string(bb))
+		return fmt.Errorf("failed to decode JSON: %w", err)
 	}
 	return nil
 }
