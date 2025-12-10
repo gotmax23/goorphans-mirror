@@ -119,7 +119,7 @@ func (c *ExtrasClient) IsRetired(name string, branch string) (bool, error) {
 		return false, errors.Join(baseerr, err)
 	}
 	defer resp.Body.Close()
-	switch c := resp.StatusCode; c {
+	switch resp.StatusCode {
 	case http.StatusOK:
 		return true, nil
 	case http.StatusNotFound:
