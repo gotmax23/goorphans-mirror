@@ -22,7 +22,7 @@ var DefaultTTL = (time.Hour * 24).Seconds()
 
 // EmailCacheClient is a wrapper around FASJSON that caches username and group
 // -> email mappings.
-// Each function caches its result in the database
+// Each function caches its result in the SQLite database.
 type EmailCacheClient struct {
 	db         *sql.DB
 	Client     *Client
