@@ -29,7 +29,7 @@ func GetRoguePackagerGroupMembers(
 	r := make(map[string][]string, len(groups)+1)
 	total := mapset.NewThreadUnsafeSet[string]()
 	for _, group := range groups {
-		if group == "packager" {
+		if group == "packager" || group == "sysadmin-main" {
 			continue
 		}
 		members, err := f.GetMembers(group)
