@@ -2,8 +2,6 @@
 image: fedora/latest
 sources:
   - https://codeberg.org/gotmax23/goorphans
-repositories:
-  copr:copr.fedorainfracloud.org:gotmax23:golangci-lint: "https://copr.fedorainfracloud.org/coprs/gotmax23/golangci-lint/repo/fedora-rawhide/gotmax23-golangci-lint-fedora-rawhide.repo"
 packages:
   - golang
   - golangci-lint
