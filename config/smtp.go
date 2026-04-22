@@ -19,17 +19,17 @@ const (
 )
 
 type SMTPConfig struct {
-	Host        string `toml:"host"                 env:"HOST"`
-	Port        int    `toml:"port"                 env:"PORT"`
-	Username    string `toml:"username"             env:"USERNAME"`
-	Password    string `toml:"password"             env:"PASSWORD,unset"`
-	PasswordCmd any    `toml:"password-cmd"         env:"PASWORD_CMD"`
-	From        string `toml:"from"                 env:"FROM"`
-	Secure      string `toml:"secure"               env:"SECURE"`
+	Host        string `toml:"host"         env:"HOST"`
+	Port        int    `toml:"port"         env:"PORT"`
+	Username    string `toml:"username"     env:"USERNAME"`
+	Password    string `toml:"password"     env:"PASSWORD,unset"`
+	PasswordCmd any    `toml:"password-cmd" env:"PASWORD_CMD"`
+	From        string `toml:"from"         env:"FROM"`
+	Secure      string `toml:"secure"       env:"SECURE"`
 	// Skip TLS verification
 	InsecureSkipVerify bool `toml:"insecure-skip-verify" env:"INSECURE_SKIP_VERIFY"`
 	// Write messages to a directory instead of sending them
-	OutgoingDir string `toml:"outgoing-dir"         env:"OUTGOING_DIR"`
+	OutgoingDir string `toml:"outgoing-dir" env:"OUTGOING_DIR"`
 }
 
 // Validate is overcomplicated code to parse SMTPConfig and handle unset
@@ -81,7 +81,12 @@ func (s *SMTPConfig) Validate() error {
 				s.Port = portStartTLS
 			}
 		default:
-			adderrf("invalid s.secure value %q: must be %q or %q", s.Secure, "tls", "starttls")
+			adderrf(
+				"invalid s.secure value %q: must be %q or %q",
+				s.Secure,
+				"tls",
+				"starttls",
+			)
 		}
 		var missing []string
 		values := map[string]*string{
@@ -121,7 +126,11 @@ func parseCmd(cmd any, key string) ([]string, error) {
 		for i, v := range cmd {
 			v, ok := v.(string)
 			if !ok {
-				return nil, fmt.Errorf("invalid type at index %v: got %T; wanted string", i, v)
+				return nil, fmt.Errorf(
+					"invalid type at index %v: got %T; wanted string",
+					i,
+					v,
+				)
 			}
 			args = append(args, v)
 		}
