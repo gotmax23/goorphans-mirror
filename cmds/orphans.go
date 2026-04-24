@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -47,7 +48,18 @@ func (args *OrphansArgs) OrphansData() (*common.Orphans, error) {
 		args.orphansData = o
 		return o, nil
 	}
-	return common.LoadOrphans(path.Join(args.Dir, common.OrphansJSON))
+	o, err := common.LoadOrphans(path.Join(args.Dir, common.OrphansJSON))
+	// Try to download the files anyway if they don't exist.
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintf(
+			os.Stderr,
+			"Orphans data does not exist (%s); forcing download\n",
+			err,
+		)
+		args.Config.Download = true
+		return args.OrphansData()
+	}
+	return o, err
 }
 
 func newOrphansCommand() *cobra.Command {

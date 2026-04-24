@@ -91,12 +91,12 @@ func LoadOrphans(path string) (*Orphans, error) {
 	var orphans Orphans
 	file, err := os.Open(path)
 	if err != nil {
-		return &orphans, fmt.Errorf("failed to load orphans.json: %v", err)
+		return &orphans, fmt.Errorf("failed to load orphans.json: %w", err)
 	}
 	defer file.Close()
 	err = json.NewDecoder(file).Decode(&orphans)
 	if err != nil {
-		return &orphans, fmt.Errorf("failed to load orphans.json: %v", err)
+		return &orphans, fmt.Errorf("failed to load orphans.json: %w", err)
 	}
 	return &orphans, nil
 }
