@@ -70,6 +70,7 @@ func Weeks(weeks int) time.Duration {
 
 type Orphans struct {
 	Addresses                   []string             `json:"addresses"`
+	AffectedPackages            map[string][]string  `json:"affected_packages"`
 	AffectedPeople              map[string][]string  `json:"affected_people"`
 	AllAffectedPeople           map[string][]string  `json:"all_affected_people"`
 	FtbfsBreakingDeps           []string             `json:"ftbfs_breaking_deps"`
