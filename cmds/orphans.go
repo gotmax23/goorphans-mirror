@@ -2,6 +2,7 @@ package cmds
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -99,6 +100,7 @@ func newOrphansCommand() *cobra.Command {
 	cmd.AddCommand(oList())
 	cmd.AddCommand(oAnnounce())
 	cmd.AddCommand(oNotifications())
+	cmd.AddCommand(oJSON())
 	return cmd
 }
 
@@ -449,6 +451,24 @@ func oNotifications() *cobra.Command {
 			}
 
 			return nil
+		},
+	}
+	return cmd
+}
+
+func oJSON() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "json",
+		Short: "Dump serialized orphans JSON (for testing purposes)",
+		RunE: func(cmd *cobra.Command, argv []string) error {
+			args := cmd.Context().Value(orphansArgsKey).(*OrphansArgs)
+			d, err := args.OrphansData()
+			if err != nil {
+				return err
+			}
+			e := json.NewEncoder(os.Stdout)
+			e.SetIndent("", "  ")
+			return e.Encode(d)
 		},
 	}
 	return cmd
