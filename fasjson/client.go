@@ -1,8 +1,6 @@
 package fasjson
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -63,20 +61,7 @@ func NewClient() *Client {
 
 func (c *Client) do(dest any, urlparts ...string) error {
 	path := c.URL.JoinPath(urlparts...)
-	log.Printf("GET %s\n", path.String())
-	resp, err := c.Client.Get(path.String())
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if err := common.CheckStatusCode(resp); err != nil {
-		return err
-	}
-	err = json.NewDecoder(resp.Body).Decode(&dest)
-	if err != nil {
-		return err
-	}
-	return nil
+	return common.GetJSON(c.Client, dest, path)
 }
 
 func (c *Client) GetUser(username string) (*User, error) {
