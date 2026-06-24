@@ -24,6 +24,7 @@ type Config struct {
 	SMTP    SMTPConfig    `toml:"smtp"    envPrefix:"SMTP_"`
 	FASJSON FASJSONConfig `toml:"fasjson" envPrefix:"FASJSON_"`
 	Orphans OrphansConfig `toml:"orphans" envPrefix:"ORPHANS_"`
+	Nags    NagsConfig    `toml:"nags"    envPrefix:"NAGS_"`
 	// CacheDir string
 }
 
@@ -39,6 +40,10 @@ type OrphansConfig struct {
 	ReplyTo          string   `toml:"reply-to"           env:"REPLY_TO"`
 	BCC              []string `toml:"bcc"                env:"BCC"`
 	DirectMaintsOnly bool     `toml:"direct-maints-only" env:"DIRECT_MAINTS_ONLY"`
+}
+
+type NagsConfig struct {
+	ReplyTo string `toml:"reply-to" env:"REPLY_TO"`
 }
 
 func LoadConfig(p string) (*Config, error) {

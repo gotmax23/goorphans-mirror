@@ -1,14 +1,17 @@
 package mail
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 	"time"
 
 	gomail "github.com/wneessen/go-mail"
+	"github.com/wneessen/go-mail/smtp"
 	"go.gtmx.me/goorphans/config"
 )
 
@@ -76,19 +79,47 @@ func MsgSetBodyFromFile(msg *gomail.Msg, name string) error {
 	return nil
 }
 
-// func (c *OurClient) SendAllWithContext(ctx context.Context, msgs ...*gomail.Msg) error {
-// 	var allerr error
-// 	adderrn := func(e error, n int) {
-// 		if e == nil {
-// 			return
-// 		}
-// 		allerr = errors.Join(allerr, fmt.Errorf("failed to finalize Msg at index %v: %w", n, e))
-// 	}
-// 	for i, msg := range msgs {
-// 		adderrn(c.FinalizeMsg(msg), i)
-// 	}
-// 	if allerr != nil {
-// 		return allerr
-// 	}
-// 	return c.Client.DialAndSendWithContext(ctx, msgs...)
-// }
+func SendMsg(ctx context.Context, config *config.Config, msgs ...*gomail.Msg) error {
+	var c *gomail.Client
+	var sclient *smtp.Client
+	var err error
+	if config.SMTP.OutgoingDir == "" {
+		c, err = NewClient(&config.SMTP)
+		if err != nil {
+			return err
+		}
+		sclient, err = c.DialToSMTPClientWithContext(ctx)
+		if err != nil {
+			return err
+		}
+		defer c.CloseWithSMTPClient(sclient)
+	}
+	// FinalizeMsgs before we begin sending in case there's an error.
+	for i, msg := range msgs {
+		err = FinalizeMsg(&config.SMTP, msg)
+		if err != nil {
+			return fmt.Errorf("failed to finalize msg at index %v: %w", i, err)
+		}
+	}
+	for i, msg := range msgs {
+		err := FinalizeMsg(&config.SMTP, msg)
+		if err != nil {
+			return err
+		}
+		r, _ := msg.GetRecipients()
+		fmt.Printf(
+			"(%d/%d) Sending %q to %d recipients...\n",
+			i+1, len(msgs), msg.GetGenHeader("Subject")[0], len(r),
+		)
+		if config.SMTP.OutgoingDir == "" {
+			err = c.SendWithSMTPClient(sclient, msg)
+		} else {
+			p := path.Join(config.SMTP.OutgoingDir, msg.GetMessageID()+".eml")
+			err = msg.WriteToFile(p)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

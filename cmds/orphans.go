@@ -15,7 +15,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	gomail "github.com/wneessen/go-mail"
-	"github.com/wneessen/go-mail/smtp"
 	"go.gtmx.me/goorphans/actions"
 	"go.gtmx.me/goorphans/common"
 	"go.gtmx.me/goorphans/config"
@@ -306,44 +305,6 @@ func makeAnnounceMsg(
 	return msg, nil
 }
 
-func sendMsg(config *config.Config, msgs ...*gomail.Msg) error {
-	var c *gomail.Client
-	var sclient *smtp.Client
-	var err error
-	if config.SMTP.OutgoingDir == "" {
-		c, err = mail.NewClient(&config.SMTP)
-		if err != nil {
-			return err
-		}
-		sclient, err = c.DialToSMTPClientWithContext(context.TODO())
-		if err != nil {
-			return err
-		}
-		defer c.CloseWithSMTPClient(sclient)
-	}
-	for i, msg := range msgs {
-		err := mail.FinalizeMsg(&config.SMTP, msg)
-		if err != nil {
-			return err
-		}
-		r, _ := msg.GetRecipients()
-		fmt.Printf(
-			"(%d/%d) Sending %q to %d recipients...\n",
-			i+1, len(msgs), msg.GetGenHeader("Subject")[0], len(r),
-		)
-		if config.SMTP.OutgoingDir == "" {
-			err = c.SendWithSMTPClient(sclient, msg)
-		} else {
-			p := path.Join(config.SMTP.OutgoingDir, msg.GetMessageID()+".eml")
-			err = msg.WriteToFile(p)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func oAnnounce() *cobra.Command {
 	direct := false
 	var forceTo []string
@@ -381,7 +342,7 @@ func oAnnounce() *cobra.Command {
 			if err := args.RootArgs.Config.SMTP.Validate(); err != nil {
 				return err
 			}
-			err = sendMsg(args.RootArgs.Config, msg)
+			err = mail.SendMsg(cmd.Context(), args.RootArgs.Config, msg)
 			if err != nil {
 				return err
 			}

@@ -110,6 +110,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newFas2emailCommand())
 	rootCmd.AddCommand(NewDistgitCmd())
 	rootCmd.AddCommand(newDumpConfigCmd())
+	rootCmd.AddCommand(newNagsCmd())
 	// rootCmd.AddCommand(newDocsGenCmd())
 	return rootCmd
 }
