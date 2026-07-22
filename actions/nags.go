@@ -28,7 +28,7 @@ func get2FANagMsgs(
 		msg := gomail.NewMsg(gomail.WithNoDefaultUserAgent())
 		msg.Subject(
 			fmt.Sprintf(
-				"%s: ACTION REQUIRED: Two-factor authentication required for provenpackager members",
+				"%s: SECOND REMINDER: Two-factor authentication required for provenpackager members",
 				tu.User,
 			),
 		)
